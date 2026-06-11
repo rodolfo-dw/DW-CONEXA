@@ -53,8 +53,42 @@ informada pelo chamador via query param `situacao=CANCELADA` ou
 `situacao=SUBSTITUIDA`, que imprime a marca d'água diagonal exigida pelo item 2.5
 da NT.
 
+## De-para código IBGE → nome do município
+
+A tabela 2.4.5 manda imprimir o **nome** do município (tabela IBGE), mas o XML
+só traz o código. O de-para vem do dataset sincronizado
+**`ds_dw_api_ibge_municipios`** (fonte em `datasets/` na raiz do repositório),
+que espelha a API oficial do IBGE
+(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios`).
+
+O JSON completo (~2,4 MB) é quebrado em **linhas de 2.000 caracteres** na
+coluna `JSON`, ordenadas pela coluna `CODIGO` (`0001`, `0002`, ...) com a
+quantidade de partes na linha `TOTAL`. O tamanho respeita o menor limite de
+coluna TEXT entre os bancos suportados pelo Fluig — Oracle: 4.000 **bytes**
+(acentos em UTF-8 ocupam 2 bytes, então 2.000 chars cabem com folga); MySQL:
+64 KB; SQL Server: sem limite prático. O consumidor lê todas as linhas,
+concatena na ordem e remonta o JSON.
+
+Setup (uma vez):
+
+1. Publicar o dataset `ds_dw_api_ibge_municipios` no Fluig (Studio ou Painel de
+   Controle → Datasets);
+2. Painel de Controle → Datasets → coluna *Sincronização* → ativar
+   **Sincronizar com o servidor** e agendar a tarefa (sugestão: 1x por dia).
+   O dataset é jornalizado: o `onSync` atualiza sempre a mesma linha
+   (`addOrUpdateRow`) e, se a API do IBGE estiver fora, mantém a última
+   sincronização;
+3. Configurar no JBoss do componente (system property ou variável de ambiente):
+   - `datawer.fluig.url` / `DATAWER_FLUIG_URL` — default `http://localhost:8080`
+   - `datawer.fluig.user` / `DATAWER_FLUIG_USER` — usuário de integração
+   - `datawer.fluig.pass` / `DATAWER_FLUIG_PASS`
+
+O componente (`IbgeMunicipios.java`) consulta o dataset pela API pública
+`/api/public/ecm/dataset/datasets` (Basic auth), guarda o mapa em cache por 24h
+e **nunca quebra a geração**: sem o dataset, cai nos nomes presentes no próprio
+XML e, em último caso, imprime o código IBGE.
+
 ## Pendências (próximas fases)
 
-- Tabela IBGE de municípios (hoje, quando o nome não consta no XML, imprime o código)
 - Autenticação do endpoint
 - Conferência fina de fidelidade com o Anexo I da NT

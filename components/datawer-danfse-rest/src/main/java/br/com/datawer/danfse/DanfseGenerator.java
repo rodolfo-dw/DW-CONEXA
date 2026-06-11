@@ -947,24 +947,29 @@ public class DanfseGenerator {
 	}
 
 	/**
-	 * Nome do município a partir do código IBGE. Fase 1: devolve o próprio
-	 * código (a NT pede o nome da tabela IBGE - fase 2 carregará a tabela
-	 * completa como resource).
+	 * Nome do município a partir do código IBGE (tabela 2.4.5 manda usar a
+	 * descrição da tabela do IBGE). Consulta o de-para do dataset sincronizado
+	 * ds_dw_api_ibge_municipios via {@link IbgeMunicipios}; sem ele, tenta os
+	 * nomes que o próprio XML traz e, em último caso, imprime o código.
 	 */
 	private String municipioNome(String cMun) {
 		if (cMun == null || cMun.isEmpty()) {
 			return "";
 		}
+		String nome = IbgeMunicipios.nome(cMun);
+		if (!nome.isEmpty()) {
+			return nome;
+		}
 		// quando o município do tomador coincide com o local de incidência
 		// IBS/CBS, o XML já traz o nome
 		if (cMun.equals(n.txt("infNFSe", "IBSCBS", "cLocalidadeIncid"))) {
-			String nome = n.txt("infNFSe", "IBSCBS", "xLocalidadeIncid");
+			nome = n.txt("infNFSe", "IBSCBS", "xLocalidadeIncid");
 			if (!nome.isEmpty()) {
 				return nome;
 			}
 		}
 		if (cMun.equals(n.txt("infNFSe", "cLocIncid"))) {
-			String nome = n.txt("infNFSe", "xLocIncid");
+			nome = n.txt("infNFSe", "xLocIncid");
 			if (!nome.isEmpty()) {
 				return nome;
 			}
