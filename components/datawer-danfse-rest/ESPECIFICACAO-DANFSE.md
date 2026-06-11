@@ -190,13 +190,13 @@ igual aos demais blocos — **não** uma faixa de largura total.
 
 | Campo | XML | Esq. | Sup. | Obs. |
 |---|---|---|---|---|
-| VALOR DA OPERAÇÃO / SERVIÇO | DPS…/valores/vServPrest/vServ | 5,41 | 20,90 | **Anexo I mostra label em CAIXA ALTA 7pt** (como título de bloco) |
+| Valor da Operação / Serviço | DPS…/valores/vServPrest/vServ | 5,41 | 20,90 | label 6pt comum (ver §9 — caps do desenho não se aplica) |
 | Desconto Incondicionado | vDescIncond | 10,51 | 20,90 | |
 | Desconto Condicionado | vDescCond | 15,62 | 20,90 | |
 | Total das Retenções (ISSQN / Federais) | infNFSe/valores/vTotalRet | 0,30 | 21,59 | |
 | Valor Líquido da NFS-e | infNFSe/valores/vLiq | 5,41 | 21,59 | |
 | Total do IBS/CBS | vIBSTot + vCBS | 10,51 | 21,59 | |
-| VALOR LÍQUIDO DA NFS-e + IBS/CBS | IBSCBS/totCIBS/vTotNF | 15,62 | 21,59 | **SOMBREADO + label em CAIXA ALTA** (Anexo I) |
+| Valor Líquido da NFS-e + IBS/CBS | IBSCBS/totCIBS/vTotNF | 15,62 | 21,59 | **SOMBREADO** (item 2.2.3); label 6pt comum |
 
 ### 5.11 Informações Complementares (faixa-título em 0,30 / 22,27 — Alt. **0,39** × 20,40)
 
@@ -257,16 +257,36 @@ Faixas de bloco suprimido — conforme **exemplos do item 2.4.5.1**:
 - Diagonal, formato normal, **mínimo 50 pt**, fonte **Arial**, **cinza K35**.
 - O cancelamento NÃO consta no XML da NFS-e — chega por evento/parâmetro externo.
 
-## 9. Observações de interpretação (Anexo I × tabela)
+## 9. Observações de interpretação (Anexo I × tabela × texto)
 
-1. **Anexo I prevalece** sobre a tabela na disposição dos campos (item 2.2.4).
-2. No Anexo I os **blocos são contíguos** (compartilham bordas — uma única linha entre
-   blocos). A tabela tem "gaps" de 0,02 cm entre alguns blocos (1,46→1,48; 4,32→4,34) que
-   NÃO aparecem no modelo — não desenhar linhas duplas.
+**Critério adotado (decisão de 11/06/2026): o TEXTO NORMATIVO prevalece.** O desenho
+do Anexo I vale para a DISPOSIÇÃO dos campos (item 2.2.4), mas detalhes gráficos que
+só aparecem no desenho e não constam do texto são tratados como artefatos da
+ferramenta usada para desenhar o modelo e **não devem ser impressos**:
+
+- ❌ **Grade interna tracejada** (linhas verticais entre células e horizontais entre
+  linhas de campos): aparece no desenho, mas o item 2.2.3 lista apenas borda da página
+  (1 pt) e linhas divisórias dos blocos (0,5 pt). A DANFSe v1.0 do portal também não
+  imprime grade interna. → NÃO desenhar.
+- ❌ **Divisórias verticais do cabeçalho** (logo / descrição / município): mesmos
+  motivos. → NÃO desenhar.
+- ❌ **Labels em caixa alta no bloco "Valor Total"** ("VALOR DA OPERAÇÃO / SERVIÇO" e
+  "VALOR LÍQUIDO DA NFS-e + IBS/CBS" aparecem em caps no desenho): o item 2.4.2 manda
+  6 pt negrito Primeira Letra Maiúscula para labels fora do bloco de identificação.
+  → seguir o item 2.4.2 (o sombreamento do "Valor Líquido da NFS-e + IBS/CBS" fica,
+  pois ESTE está no texto do item 2.2.3).
+
+Demais observações:
+
+1. **Anexo I prevalece na disposição dos campos** (item 2.2.4) — ex.: bloco ISSQN tem o
+   título como célula na 1ª linha (a tabela 2.4.5 contradiz a si mesma nesse ponto).
+2. No Anexo I os **blocos são contíguos** (uma única linha entre blocos). A tabela tem
+   "gaps" de 0,02 cm (1,46→1,48; 4,32→4,34) — não desenhar linhas duplas.
 3. Campos monetários aparecem no Anexo I com placeholder **"R$"** e percentuais com
-   **"%"** → conteúdo monetário no formato `R$ n.nnn,nn` e percentual `n,nn%`
-   (o DANFSe v1.0 oficial também imprime "R$ " antes dos valores).
-4. O cabeçalho tem **divisórias verticais** entre logo / descrição / município-ambiente.
+   **"%"** → conteúdo `R$ n.nnn,nn` e `n,nn%`. Mantido por ser CONTEÚDO indicado no
+   modelo (não decoração) e por a Nota 10 e o v1.0 oficial usarem "R$".
+4. Faixas de bloco suprimido: texto centralizado, fundo branco, peso normal — conforme
+   os exemplos do item 2.4.5.1 (parte do texto da NT).
 5. "DANFSe v1.0" (gerado hoje pelo portal nacional) é o modelo ANTIGO: sem sombreamento,
    conteúdo 8 pt, QR 1,76 cm, sem blocos IBS/CBS. Não usar como gabarito do v2.0 — vale
    apenas como referência de FONTES reais (Arial + Microsoft Sans Serif embutidas).

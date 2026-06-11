@@ -4,17 +4,26 @@
 > `oficial.pdf` (baixada do portal gov) e a NT 008 (`ESPECIFICACAO-DANFSE.md`).
 > Medições feitas por extração direta dos PDFs (fontes, espessuras, posições em cm).
 
-## ✅ STATUS: corrigido em 11/06/2026
+## ✅ STATUS: corrigido em 11/06/2026 (revisado no mesmo dia)
 
-Os itens 1–11 abaixo foram corrigidos no `DanfseGenerator.java` (validado por
-extração do PDF: Arial/MS Sans Serif embutidas como subset, divisórias internas
-tracejadas como no Anexo I, blocos contíguos, corpo em 28,77). TTFs em
+Os itens 1–11 abaixo foram corrigidos no `DanfseGenerator.java`. TTFs em
 `src/main/resources/danfse/fonts/` (copiados do macOS — conferir licenciamento
 antes de distribuir fora da empresa). Permanecem em aberto apenas os "menores":
 cores RGB (não CMYK) e nome do município via tabela IBGE (fase 2).
-Descoberta adicional aplicada: o Anexo I usa linhas internas TRACEJADAS
-(verticais entre células e horizontais entre linhas de campos) — o PDF antigo
-não desenhava nenhuma horizontal interna.
+
+**Revisão (decisão do Rodolfo): o texto normativo prevalece sobre o desenho do
+Anexo I.** Três itens que tinham sido implementados com base apenas no desenho
+foram REVERTIDOS/REMOVIDOS por não constarem do texto da NT:
+- grade interna tracejada entre células/linhas de campos (item 2.2.3 só prevê
+  borda da página 1pt + divisórias de blocos 0,5pt);
+- divisórias verticais do cabeçalho (logo/descrição/município);
+- labels em caixa alta 7pt em "Valor da Operação / Serviço" e "Valor Líquido da
+  NFS-e + IBS/CBS" (item 2.4.2 manda 6pt Primeira Letra Maiúscula fora do bloco
+  de identificação; o sombreamento do segundo permanece, pois está no 2.2.3).
+
+Estado validado por extração do PDF final: 1 rect 1pt (borda da página) +
+12 rects 0,5pt (blocos) + 11 sombreamentos 5% + ZERO linhas internas;
+Arial/MS Sans Serif embutidas como subset; corpo em 28,77.
 
 ## ⚠️ Contexto essencial: oficial.pdf é o modelo ANTIGO (v1.0)
 

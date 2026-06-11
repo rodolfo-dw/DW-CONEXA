@@ -43,8 +43,10 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
  * Os TTF são embutidos como subset a partir de /danfse/fonts; sem os resources,
  * cai em Helvetica (válido só para desenvolvimento).
  *
- * Traços: limites de bloco sólidos 0,5pt, borda da página 1pt e divisórias
- * internas (entre células e entre linhas de campos) tracejadas, como no Anexo I.
+ * Traços: somente o que o item 2.2.3 exige - borda da página 1pt e linhas
+ * divisórias dos blocos 0,5pt. Sem grade interna entre campos (o desenho do
+ * Anexo I mostra tracejados internos, mas o texto não os exige e a DANFSe
+ * oficial do portal não imprime grade interna).
  */
 public class DanfseGenerator {
 
@@ -129,9 +131,6 @@ public class DanfseGenerator {
 		shade(LEFT, y, BODY_W, h);
 		rect(LEFT, y, BODY_W, h);
 		cs.stroke();
-		// divisórias verticais dos três quadros (logo / descrição / município)
-		line(5.41f, y, 5.41f, y + h);
-		line(15.62f, y, 15.62f, y + h);
 
 		// logomarca NFS-e (canto esquerdo)
 		PDImageXObject logo = loadLogo();
@@ -191,11 +190,6 @@ public class DanfseGenerator {
 		fieldCaps("FINALIDADE", DESC_FIN.getOrDefault(n.txt("infNFSe", "DPS", "infDPS", "IBSCBS", "finNFSe"), "-"),
 				10.51f, 3.65f, 5.09f, 0.65f);
 
-		// separadores horizontais das linhas de campos (até a coluna do QR Code)
-		dashed(LEFT, 2.27f, 15.60f, 2.27f);
-		dashed(LEFT, 2.96f, 15.60f, 2.96f);
-		dashed(LEFT, 3.65f, 15.60f, 3.65f);
-
 		// QR Code (item 2.4.3): 1,52 x 1,52 cm em X 17,48 / Y 1,67
 		PDImageXObject qr = qrCode("https://www.nfse.gov.br/ConsultaPublica/?tpc=1&chave=" + n.chaveAcesso());
 		image(qr, 17.48f, 1.67f, 1.52f, 1.52f);
@@ -238,7 +232,6 @@ public class DanfseGenerator {
 				DESC_OP_SIMP.getOrDefault(n.txt(cat(p, "regTrib", "opSimpNac")), "-"), COLS[0], y4, 10.21f, 0.64f);
 		field("Regime de Apuração Tributária pelo SN",
 				DESC_REG_AP_SN.getOrDefault(n.txt(cat(p, "regTrib", "regApTribSN")), "-"), COLS[2], y4, 10.19f, 0.64f);
-		rowSeparators(y, 0.63f, 1.27f, 1.93f);
 		return y + h;
 	}
 
@@ -263,7 +256,6 @@ public class DanfseGenerator {
 		float y3 = y2 + 0.64f;
 		field("Endereço", endereco(n, cat(t, "end")), COLS[0], y3, 10.21f, 0.67f);
 		field("Email", n.txt(cat(t, "email")), COLS[2], y3, 10.19f, 0.67f);
-		rowSeparators(y, 0.63f, 1.27f);
 		return y + h;
 	}
 
@@ -290,7 +282,6 @@ public class DanfseGenerator {
 		float y3 = y2 + 0.64f;
 		field("Endereço", endereco(n, cat(d, "end")), COLS[0], y3, 10.21f, 0.67f);
 		field("Email", n.txt(cat(d, "email")), COLS[2], y3, 10.19f, 0.67f);
-		rowSeparators(y, 0.63f, 1.27f);
 		return y + h;
 	}
 
@@ -315,7 +306,6 @@ public class DanfseGenerator {
 		float y3 = y2 + 0.64f;
 		field("Endereço", endereco(n, cat(i, "end")), COLS[0], y3, 10.21f, 0.67f);
 		field("Email", n.txt(cat(i, "email")), COLS[2], y3, 10.19f, 0.67f);
-		rowSeparators(y, 0.63f, 1.27f);
 		return y + h;
 	}
 
@@ -338,11 +328,9 @@ public class DanfseGenerator {
 
 		// descrição do código de tributação (sem label - tabela 2.4.5)
 		float y2 = y + 0.63f;
-		dashed(LEFT, y2, RIGHT, y2);
 		String xTribMun = n.txt("infNFSe", "xTribMun");
 		String descTrib = !xTribMun.isEmpty() ? xTribMun : n.txt("infNFSe", "xTribNac");
 		text(trunc(descTrib, BODY_W - 0.20f, fontContent, 7), LEFT + 0.10f, y2 + 0.28f, fontContent, 7);
-		dashed(LEFT, y2 + 0.38f, RIGHT, y2 + 0.38f);
 
 		float y3 = y2 + 0.38f;
 		label("Descrição do Serviço", LEFT + 0.10f, y3 + 0.25f);
@@ -385,7 +373,6 @@ public class DanfseGenerator {
 				n.txt("infNFSe", "xLocIncid") + " / " + ufFromIbge(n.txt("infNFSe", "cLocIncid")) + " / BR",
 				COLS[2], y, 10.19f, 0.63f);
 		float r = y + 0.63f;
-		dashed(LEFT, r, RIGHT, r);
 		if (row2) {
 			field("Regime Especial de Tributação do ISSQN", DESC_REG_ESP.getOrDefault(regEsp, regEsp),
 					COLS[0], r, 5.11f, 0.65f);
@@ -393,7 +380,6 @@ public class DanfseGenerator {
 			field("Suspensão da Exigibilidade do ISSQN", tpSusp.isEmpty() ? "-" : tpSusp, COLS[2], r, 5.11f, 0.65f);
 			field("Número Processo Suspensão", nProc, COLS[3], r, 5.08f, 0.65f);
 			r += 0.65f;
-			dashed(LEFT, r, RIGHT, r);
 		}
 		if (row3) {
 			field("Benefício Municipal", tpBM, COLS[0], r, 5.11f, 0.65f);
@@ -401,7 +387,6 @@ public class DanfseGenerator {
 			field("Total Deduções/Reduções", money(vDR), COLS[2], r, 5.11f, 0.65f);
 			field("Desconto Incondicionado", money(vDescIncond), COLS[3], r, 5.08f, 0.65f);
 			r += 0.65f;
-			dashed(LEFT, r, RIGHT, r);
 		}
 		field("BC ISSQN", money(n.txt("infNFSe", "valores", "vBC")), COLS[0], r, 5.11f, 0.64f);
 		field("Alíquota Aplicada", pct(n.txt("infNFSe", "valores", "pAliqAplic")), COLS[1], r, 5.10f, 0.64f);
@@ -426,7 +411,6 @@ public class DanfseGenerator {
 		field("Contribuições Sociais - Retidas", money(n.txt(cat(tf, "vRetCSLL"))), COLS[3], y, 5.08f, 0.63f);
 		if (pisRow) {
 			float r = y + 0.63f;
-			dashed(LEFT, r, RIGHT, r);
 			field("PIS - Débito Apuração Própria", money(n.txt(cat(tf, "piscofins", "vPis"))), COLS[0], r, 5.11f, 0.65f);
 			field("COFINS - Débito Apuração Própria", money(n.txt(cat(tf, "piscofins", "vCofins"))), COLS[1], r, 5.10f, 0.65f);
 			field("Descrição Contrib. Sociais - Retidas",
@@ -474,7 +458,6 @@ public class DanfseGenerator {
 		field("Alíquota - CBS", pct(n.txt(cat(ib, "valores", "fed", "pCBS"))), COLS[1], r, 5.10f, 0.66f);
 		field("Alíquota Efetiva - CBS", pct(n.txt(cat(ib, "valores", "fed", "pAliqEfetCBS"))), COLS[2], r, 5.11f, 0.66f);
 		field("Valor Total Apurado - CBS", money(n.txt(cat(ib, "totCIBS", "gCBS", "vCBS"))), COLS[3], r, 5.08f, 0.66f);
-		rowSeparators(y, 0.63f, 1.27f, 1.92f);
 		return y + h;
 	}
 
@@ -483,8 +466,7 @@ public class DanfseGenerator {
 		rect(LEFT, y, BODY_W, h);
 		cs.stroke();
 		blockTitle("VALOR TOTAL DA NFS-e", COLS[0], y, 5.11f, 0.67f);
-		// Anexo I: label em caixa alta 7pt, como o título do bloco
-		fieldCaps("VALOR DA OPERAÇÃO / SERVIÇO", money(n.txt("infNFSe", "DPS", "infDPS", "valores", "vServPrest", "vServ")),
+		field("Valor da Operação / Serviço", money(n.txt("infNFSe", "DPS", "infDPS", "valores", "vServPrest", "vServ")),
 				COLS[1], y, 5.10f, 0.67f);
 		field("Desconto Incondicionado", money(n.txt("infNFSe", "DPS", "infDPS", "valores", "vDescCondIncond", "vDescIncond")),
 				COLS[2], y, 5.11f, 0.67f);
@@ -494,11 +476,10 @@ public class DanfseGenerator {
 		field("Total das Retenções (ISSQN / Federais)", money(n.txt("infNFSe", "valores", "vTotalRet")), COLS[0], r, 5.11f, 0.69f);
 		field("Valor Líquido da NFS-e", money(n.txt("infNFSe", "valores", "vLiq")), COLS[1], r, 5.10f, 0.69f);
 		field("Total do IBS/CBS", money(somaIbsCbs()), COLS[2], r, 5.11f, 0.69f);
-		// sombreamento (item 2.2.3) e label em caixa alta (Anexo I)
+		// "Valor Líquido da NFS-e + IBS/CBS" com sombreamento (item 2.2.3)
 		shade(COLS[3], r, 5.08f, 0.69f);
-		fieldCaps("VALOR LÍQUIDO DA NFS-e + IBS/CBS", money(n.txt("infNFSe", "IBSCBS", "totCIBS", "vTotNF")),
+		field("Valor Líquido da NFS-e + IBS/CBS", money(n.txt("infNFSe", "IBSCBS", "totCIBS", "vTotNF")),
 				COLS[3], r, 5.08f, 0.69f);
-		rowSeparators(y, 0.67f);
 		return y + h;
 	}
 
@@ -567,7 +548,6 @@ public class DanfseGenerator {
 	/** Título de bloco ocupando a primeira célula da primeira linha. */
 	private void blockTitle(String title, float x, float y, float w, float h) throws Exception {
 		shade(x, y, w, h);
-		dashed(x + w, y, x + w, y + h);
 		// título de bloco: 7pt, negrito, caixa alta (item 2.4.1)
 		List<String> ls = splitTitle(title, w);
 		float ty = y + h / 2 - (ls.size() - 1) * 0.14f + 0.09f;
@@ -601,8 +581,6 @@ public class DanfseGenerator {
 
 	/** Campo com label 6pt (item 2.4.2) e conteúdo 7pt. */
 	private void field(String lbl, String value, float x, float y, float w, float h) throws Exception {
-		dashed(x, y, x, y + h);
-		dashed(x + w, y, x + w, y + h);
 		label(lbl, x + 0.10f, y + 0.25f);
 		String v = (value == null || value.trim().isEmpty()) ? "-" : value.trim();
 		text(trunc(v, w - 0.20f, fontContent, 7), x + 0.10f, y + h - 0.12f, fontContent, 7);
@@ -611,8 +589,6 @@ public class DanfseGenerator {
 	/** Campo com label 7pt caixa alta (item 2.4.2 - identificação e Anexo I).
 	 *  O label deve vir já em caixa alta, preservando a grafia "NFS-e". */
 	private void fieldCaps(String lbl, String value, float x, float y, float w, float h) throws Exception {
-		dashed(x, y, x, y + h);
-		dashed(x + w, y, x + w, y + h);
 		text(trunc(lbl, w - 0.2f, fontBold, 7), x + 0.10f, y + 0.28f, fontBold, 7);
 		String v = (value == null || value.trim().isEmpty()) ? "-" : value.trim();
 		text(trunc(v, w - 0.20f, fontContent, 7), x + 0.10f, y + h - 0.14f, fontContent, 7);
@@ -640,20 +616,6 @@ public class DanfseGenerator {
 		cs.moveTo(x1 * CM, (PAGE_H - y1) * CM);
 		cs.lineTo(x2 * CM, (PAGE_H - y2) * CM);
 		cs.stroke();
-	}
-
-	/** Divisória interna tracejada (entre células e linhas de campos - Anexo I). */
-	private void dashed(float x1, float y1, float x2, float y2) throws IOException {
-		cs.setLineDashPattern(new float[] {1.2f, 1.2f}, 0);
-		line(x1, y1, x2, y2);
-		cs.setLineDashPattern(new float[] {}, 0);
-	}
-
-	/** Separadores horizontais tracejados entre as linhas de campos de um bloco. */
-	private void rowSeparators(float yTop, float... offsets) throws IOException {
-		for (float o : offsets) {
-			dashed(LEFT, yTop + o, RIGHT, yTop + o);
-		}
 	}
 
 	private void text(String s, float x, float yBase, PDFont f, float size) throws IOException {
