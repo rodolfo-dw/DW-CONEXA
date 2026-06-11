@@ -25,6 +25,57 @@ Estado validado por extração do PDF final: 1 rect 1pt (borda da página) +
 12 rects 0,5pt (blocos) + 11 sombreamentos 5% + ZERO linhas internas;
 Arial/MS Sans Serif embutidas como subset; corpo em 28,77.
 
+## ✅ Segunda revisão: 11/06/2026 (tarde) — borda dupla e canhoto
+
+Medição pixel-a-pixel do Anexo I (imagem extraída da `documentacao.pdf`, pág. 25)
+revelou que **só existem duas linhas verticais na página inteira** (x≈0,18 e
+x≈20,82): a borda da página de 1pt **é a própria moldura lateral dos blocos**.
+Não há segunda moldura recuada. Correções aplicadas no `DanfseGenerator.java`:
+
+### 12. Borda dupla em volta do corpo (corrigido)
+- **Antes**: borda da página em 0,20 + blocos recuados em 0,30 → moldura dupla
+  com vão de 0,10 cm em todo o contorno.
+- **Agora**: corpo em `LEFT=0,20 / RIGHT=20,80` — blocos encostam na borda da
+  página; topo do cabeçalho = borda superior. O conteúdo das células fica 0,10
+  para dentro, caindo EXATAMENTE nas posições da tabela 2.4.5 (0,30 / 5,41 /
+  10,51 / 15,62) — `COLS = {0,20; 5,31; 10,41; 15,52}` + padding 0,10.
+  As margens (0,20) seguem dentro do item 2.2.2 (0,15–0,20).
+
+### 13. Canhoto ausente (corrigido)
+- Bloco opcional (Nota 11), mas presente no Anexo I — incluído sempre.
+- Caixa destacada do corpo, recuada 0,10 da borda (0,30–20,70), em
+  Y 28,10 / Alt. 0,67 (tabela 2.4.5), com 3 células (divisórias em 5,41 e
+  10,51): "DATA CIENTIFICAÇÃO:", "IDENTIFICAÇÃO E ASSINATURA" e
+  "Nº NFS-e / CHAVE NFS-e" (labels 7pt negrito caixa alta, como no Anexo I);
+  conteúdo da 3ª célula = `nNFSe / chave de acesso`.
+- Em consequência, o corpo (Inf. Complementares) passou a terminar em
+  **27,90** (gap de 0,20 até o canhoto, como o destaque do Anexo I).
+
+### 14. Linhas divisórias duplicadas / sombreamento cobrindo a divisória (corrigido)
+- **Antes**: cada bloco traçava o próprio retângulo → toda fronteira entre blocos
+  era traçada DUAS vezes (base de um + topo do outro), o que em certos zooms o
+  viewer renderiza como linha dupla; e o sombreamento do título, pintado depois
+  do stroke, cobria metade da espessura da divisória ("fundo invadindo a borda" —
+  visível em SERVIÇO PRESTADO, ISSQN, IBS/CBS e VALOR TOTAL).
+- **Agora**: cada fronteira é UMA única `line()` de 0,5pt, traçada DEPOIS dos
+  sombreamentos (linha por cima do fundo); as laterais dos blocos vêm somente da
+  borda da página de 1pt, traçada por último. Ordem de pintura: sombreamentos →
+  divisórias → borda da página → marca d'água.
+
+### 15. "Regime de Apuração Tributária pelo SN" na coluna errada (corrigido)
+- **Tabela 2.4.5**: Esq 10,51 (3ª coluna). **Anexo I**: 2ª coluna (5,41), ao lado
+  de "Simples Nacional na Data de Competência" — mesma coluna do "CNPJ / CPF /
+  NIF" (conferido por ampliação da imagem do Anexo).
+- Conflito tabela × Anexo resolvido pelo item 2.2.4 (a disposição dos campos
+  deve obrigatoriamente obedecer ao Anexo I): campo movido para a coluna 5,41,
+  com largura até a borda direita.
+
+### Sombreamento dos títulos de bloco — NÃO é erro
+Questionado se o fundo cinza de "PRESTADOR / FORNECEDOR", "TOMADOR /
+ADQUIRENTE", "SERVIÇO PRESTADO" etc. deveria existir: **sim** — item 2.2.3
+exige sombreamento 5% no cabeçalho, nos títulos de cada bloco e nos campos
+"Emitente da NFS-e" e "Valor Líquido da NFS-e + IBS/CBS". Mantido.
+
 ## ⚠️ Contexto essencial: oficial.pdf é o modelo ANTIGO (v1.0)
 
 A nota baixada do portal é **"DANFSe v1.0"**: sem sombreamento, labels Title Case,
