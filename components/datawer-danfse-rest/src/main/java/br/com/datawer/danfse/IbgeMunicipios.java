@@ -18,15 +18,12 @@ import javax.json.JsonValue;
 /**
  * De-para código IBGE -> nome do município (tabela 2.4.5: "utilizar a
  * descrição destes códigos").
+ * O snapshot IBGE embutido no JAR é carregado uma vez e torna a geração
+ * determinística, sem depender de rede. A API pública fica como contingência
+ * apenas se o recurso local não estiver disponível.
  *
- * A cada geração de DANFSe ({@link #atualizar()}) a API pública do IBGE
- * (https://servicodados.ibge.gov.br/api/v1/localidades/municipios) é
- * consultada para montar o de-para. Se a consulta falhar, mantém o último
- * mapa carregado com sucesso ou, na primeira falha, cai no snapshot da mesma
- * API embutido no JAR (danfse/municipios-ibge.txt, linhas "codigo;nome").
- *
- * Nunca propaga erro: sem o de-para, o DANFSe imprime o próprio código IBGE,
- * como antes.
+ * Nunca propaga erro: sem o de-para, campos individuais de nome de município
+ * seguem a regra geral e são impressos com traço.
  */
 final class IbgeMunicipios {
 
@@ -39,20 +36,20 @@ final class IbgeMunicipios {
 	}
 
 	/**
-	 * Recarrega o de-para consultando a API do IBGE. Em falha, mantém o último
-	 * carregado ou usa o snapshot embutido no JAR como fallback.
+	 * Inicializa o de-para uma única vez, priorizando o snapshot embutido.
 	 */
-	static void atualizar() {
+	static synchronized void atualizar() {
+		if (!cache.isEmpty()) {
+			return;
+		}
 		try {
-			cache = carregarDaApi();
-		} catch (Exception e) {
-			System.out.println("IbgeMunicipios: falha ao consultar a API do IBGE - " + e.getMessage());
-			if (cache.isEmpty()) {
-				try {
-					cache = carregarLocal();
-				} catch (Exception eLocal) {
-					System.out.println("IbgeMunicipios: falha ao ler " + RECURSO_LOCAL + " - " + eLocal.getMessage());
-				}
+			cache = carregarLocal();
+		} catch (Exception eLocal) {
+			System.out.println("IbgeMunicipios: falha ao ler " + RECURSO_LOCAL + " - " + eLocal.getMessage());
+			try {
+				cache = carregarDaApi();
+			} catch (Exception e) {
+				System.out.println("IbgeMunicipios: falha ao consultar a API do IBGE - " + e.getMessage());
 			}
 		}
 	}

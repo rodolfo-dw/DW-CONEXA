@@ -1,7 +1,9 @@
 package br.com.datawer.danfse;
 
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.Consumes;
@@ -27,12 +29,15 @@ public class DanfseResource {
 	 *                 d'água. O XML da NFS-e não carrega o cancelamento (que é
 	 *                 um evento separado), por isso a informação vem por
 	 *                 parâmetro.
+	 * @param debug    inclui no JSON a auditoria de origem e formatação de cada
+	 *                 campo impresso, sem alterar o PDF
 	 */
 	@POST
 	@Path("/base64")
 	@Consumes({MediaType.APPLICATION_XML, MediaType.TEXT_XML, MediaType.TEXT_PLAIN})
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response gerarBase64(String xml, @QueryParam("situacao") String situacao) {
+	public Response gerarBase64(String xml, @QueryParam("situacao") String situacao,
+			@QueryParam("debug") boolean debug) {
 		try {
 			if (xml == null || xml.trim().isEmpty()) {
 				return Response.status(Response.Status.BAD_REQUEST)
@@ -40,7 +45,8 @@ public class DanfseResource {
 			}
 
 			NfseXml nfse = NfseXml.parse(xml);
-			byte[] pdf = new DanfseGenerator().generate(nfse, situacao);
+			DanfseGenerationResult generation = new DanfseGenerator().generateWithAudit(nfse, situacao);
+			byte[] pdf = generation.getPdf();
 
 			Map<String, Object> result = new LinkedHashMap<>();
 			result.put("success", true);
@@ -51,6 +57,13 @@ public class DanfseResource {
 			result.put("fileName", "DANFSe-" + nfse.txt("infNFSe", "nNFSe") + ".pdf");
 			result.put("contentType", "application/pdf");
 			result.put("pdfBase64", Base64.getEncoder().encodeToString(pdf));
+			if (debug) {
+				List<Map<String, Object>> audit = new ArrayList<>();
+				for (DanfseAuditEntry entry : generation.getAudit()) {
+					audit.add(entry.toMap());
+				}
+				result.put("audit", audit);
+			}
 
 			System.out.println(String.format("DANFSe gerado: nNFSe=%s chave=%s (%d bytes)",
 					nfse.txt("infNFSe", "nNFSe"), nfse.chaveAcesso(), pdf.length));

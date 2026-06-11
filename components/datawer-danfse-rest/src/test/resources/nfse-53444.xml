@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<NFSe versao="1.01" xmlns="http://www.sped.fazenda.gov.br/nfse">
+  <infNFSe Id="NFS33045572227092748000118000000005344426065793314288">
+    <xLocEmi>Rio de Janeiro</xLocEmi>
+    <xLocPrestacao>Rio de Janeiro</xLocPrestacao>
+    <nNFSe>53444</nNFSe>
+    <cLocIncid>3304557</cLocIncid>
+    <xLocIncid>Rio de Janeiro</xLocIncid>
+    <xTribNac>Medicina.</xTribNac>
+    <xTribMun>Medicina.</xTribMun>
+    <xNBS>Serviços médicos especializados</xNBS>
+    <verAplic>SefinNacional_1.6.0</verAplic>
+    <ambGer>2</ambGer>
+    <tpEmis>1</tpEmis>
+    <procEmi>1</procEmi>
+    <cStat>100</cStat>
+    <dhProc>2026-06-08T15:48:42-03:00</dhProc>
+    <nDFSe>88736019</nDFSe>
+    <emit>
+      <CNPJ>27092748000118</CNPJ>
+      <xNome>CONEXA SAUDE SERVICOS MEDICOS S.A.</xNome>
+      <enderNac>
+        <xLgr>PRAIA BOTAFOGO</xLgr>
+        <nro>00501</nro>
+        <xBairro>BOTAFOGO</xBairro>
+        <cMun>3304557</cMun>
+        <UF>RJ</UF>
+        <CEP>22250911</CEP>
+      </enderNac>
+      <fone>2125076754</fone>
+      <email>DCUPELLO@INTEGRATED.COM.BR</email>
+    </emit>
+    <valores>
+      <vBC>10321.73</vBC>
+      <pAliqAplic>5.00</pAliqAplic>
+      <vISSQN>516.09</vISSQN>
+      <vTotalRet>634.78</vTotalRet>
+      <vLiq>9686.95</vLiq>
+    </valores>
+    <IBSCBS>
+      <cLocalidadeIncid>4115804</cLocalidadeIncid>
+      <xLocalidadeIncid>Medianeira</xLocalidadeIncid>
+      <valores>
+        <vBC>9428.90</vBC>
+        <vCalcReeRepRes>0.00</vCalcReeRepRes>
+        <uf><pIBSUF>0.10</pIBSUF><pAliqEfetUF>0.10</pAliqEfetUF></uf>
+        <mun><pIBSMun>0.00</pIBSMun><pAliqEfetMun>0.00</pAliqEfetMun></mun>
+        <fed><pCBS>0.90</pCBS><pAliqEfetCBS>0.90</pAliqEfetCBS></fed>
+      </valores>
+      <totCIBS>
+        <vTotNF>9686.95</vTotNF>
+        <gIBS>
+          <vIBSTot>9.43</vIBSTot>
+          <gIBSUFTot><vIBSUF>9.43</vIBSUF></gIBSUFTot>
+          <gIBSMunTot><vIBSMun>0.00</vIBSMun></gIBSMunTot>
+        </gIBS>
+        <gCBS><vCBS>84.86</vCBS></gCBS>
+      </totCIBS>
+    </IBSCBS>
+    <DPS versao="1.01">
+      <infDPS Id="DPS330455722709274800011800002000000000000199">
+        <tpAmb>1</tpAmb>
+        <dhEmi>2026-06-08T15:47:24-03:00</dhEmi>
+        <verAplic>TOTVS-TSS-3.00</verAplic>
+        <serie>2</serie>
+        <nDPS>199</nDPS>
+        <dCompet>2026-06-08</dCompet>
+        <tpEmit>1</tpEmit>
+        <cLocEmi>3304557</cLocEmi>
+        <prest>
+          <CNPJ>27092748000118</CNPJ>
+          <fone>2125076754</fone>
+          <regTrib><opSimpNac>1</opSimpNac><regEspTrib>0</regEspTrib></regTrib>
+        </prest>
+        <toma>
+          <CNPJ>78420783000150</CNPJ>
+          <xNome>UNIMED DO OESTE DO PARANA - COOPERATIVA DE TRABALHO MEDICO</xNome>
+          <end>
+            <endNac><cMun>4115804</cMun><CEP>85720256</CEP></endNac>
+            <xLgr>Rua Brasilia</xLgr>
+            <nro>2291</nro>
+            <xBairro>Cidade Alta</xBairro>
+          </end>
+          <email>mateus.junior@conexasaude.com.br</email>
+        </toma>
+        <serv>
+          <locPrest><cLocPrestacao>3304557</cLocPrestacao></locPrest>
+          <cServ>
+            <cTribNac>040101</cTribNac>
+            <cTribMun>001</cTribMun>
+            <xDescServ>Servicos prestados Maio/2026 - Referente ao demonstrativo 133058764</xDescServ>
+            <cNBS>123012200</cNBS>
+          </cServ>
+          <infoCompl>
+            <xInfComp>Servicos prestados Maio/2026 - Referente ao demonstrativo 133058764- PIS RETIDO: 67.09, COFINS RETIDO: 309.65, CSLL RETIDO: 103.22 CONEXA RIO DE JANEIRO - MATRIZ CNPJ: 27.092.748/0001-18 Banco Itau AG: 2937 CC: 22901-7 VENCIMENTO 25/06/2026 Valor liquido: R$       9.686,95</xInfComp>
+          </infoCompl>
+        </serv>
+        <valores>
+          <vServPrest><vServ>10321.73</vServ></vServPrest>
+          <trib>
+            <tribMun><tribISSQN>1</tribISSQN><tpRetISSQN>1</tpRetISSQN></tribMun>
+            <tribFed>
+              <piscofins>
+                <CST>01</CST>
+                <vBCPisCofins>10321.73</vBCPisCofins>
+                <pAliqPis>0.65</pAliqPis>
+                <pAliqCofins>3.00</pAliqCofins>
+                <vPis>67.09</vPis>
+                <vCofins>309.65</vCofins>
+                <tpRetPisCofins>3</tpRetPisCofins>
+              </piscofins>
+              <vRetIRRF>154.82</vRetIRRF>
+              <vRetCSLL>479.96</vRetCSLL>
+            </tribFed>
+            <totTrib>
+              <vTotTrib><vTotTribFed>634.78</vTotTribFed><vTotTribEst>0.00</vTotTribEst><vTotTribMun>516.09</vTotTribMun></vTotTrib>
+            </totTrib>
+          </trib>
+        </valores>
+        <IBSCBS>
+          <finNFSe>0</finNFSe>
+          <indFinal>1</indFinal>
+          <cIndOp>100301</cIndOp>
+          <indDest>0</indDest>
+          <valores><trib><gIBSCBS><CST>000</CST><cClassTrib>000001</cClassTrib></gIBSCBS></trib></valores>
+        </IBSCBS>
+      </infDPS>
+    </DPS>
+  </infNFSe>
+</NFSe>

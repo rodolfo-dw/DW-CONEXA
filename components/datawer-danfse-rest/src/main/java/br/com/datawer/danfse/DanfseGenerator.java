@@ -80,6 +80,24 @@ public class DanfseGenerator {
 	private PDDocument doc;
 	private PDPageContentStream cs;
 	private NfseXml n;
+	private List<DanfseAuditEntry> audit;
+	private String auditBlock;
+
+	private static final class FieldValue {
+		private final String value;
+		private final String source;
+		private final String rule;
+		private final boolean tableConverted;
+		private final boolean usedDash;
+
+		private FieldValue(String value, String source, String rule, boolean tableConverted) {
+			this.value = value;
+			this.source = source;
+			this.rule = rule;
+			this.tableConverted = tableConverted;
+			this.usedDash = containsMissingMarker(value);
+		}
+	}
 
 	/**
 	 * @param nfse     XML da NFS-e já parseado
@@ -88,7 +106,13 @@ public class DanfseGenerator {
 	 *                 (o cancelamento não consta no XML da NFS-e; vem por evento)
 	 */
 	public byte[] generate(NfseXml nfse, String situacao) throws Exception {
+		return generateWithAudit(nfse, situacao).getPdf();
+	}
+
+	/** Gera o PDF e devolve a trilha de origem/formatação dos campos impressos. */
+	public DanfseGenerationResult generateWithAudit(NfseXml nfse, String situacao) throws Exception {
 		this.n = nfse;
+		this.audit = new ArrayList<>();
 		IbgeMunicipios.atualizar();
 		try (PDDocument document = new PDDocument()) {
 			this.doc = document;
@@ -103,7 +127,7 @@ public class DanfseGenerator {
 			}
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			doc.save(out);
-			return out.toByteArray();
+			return new DanfseGenerationResult(out.toByteArray(), audit);
 		}
 	}
 
@@ -144,6 +168,7 @@ public class DanfseGenerator {
 	// ------------------------------------------------------------------ blocos
 
 	private void drawCabecalho() throws Exception {
+		auditBlock = "CABEÇALHO";
 		// topo do cabeçalho = borda da página (Anexo I); a divisória inferior
 		// (1,46) é traçada pelo bloco seguinte - cada fronteira tem UMA linha
 		float y = 0.20f, h = 1.46f - y;
@@ -170,45 +195,69 @@ public class DanfseGenerator {
 		}
 
 		// canto direito
-		String mun = n.txt("infNFSe", "xLocEmi");
-		String uf = n.txt("infNFSe", "emit", "enderNac", "UF");
-		text(trunc("Município: " + mun + (uf.isEmpty() ? "" : " / " + uf), 5.0f, fontContent, 8),
-				15.70f, 0.72f, fontContent, 8);
-		text("Ambiente Gerador: " + DESC_AMB_GER.getOrDefault(n.txt("infNFSe", "ambGer"), n.txt("infNFSe", "ambGer")),
-				15.70f, 1.07f, fontContent, 6);
-		text("Tipo de Ambiente: " + DESC_TP_AMB.getOrDefault(n.txt("infNFSe", "DPS", "infDPS", "tpAmb"), "-"),
-				15.70f, 1.32f, fontContent, 6);
+		String cTribNac = n.txt("infNFSe", "DPS", "infDPS", "serv", "cServ", "cTribNac");
+		if (!cTribNac.startsWith("99")) {
+			String mun = n.txt("infNFSe", "xLocEmi");
+			String uf = n.txt("infNFSe", "emit", "enderNac", "UF");
+			FieldValue municipio = composed(munUf(mun, uf),
+					"NFSe/infNFSe/xLocEmi + NFSe/infNFSe/emit/enderNac/UF",
+					"Concatenação Município / UF", false);
+			String municipioImpresso = trunc("Município: " + display(municipio), 5.0f, fontContent, 8);
+			text(municipioImpresso, 15.70f, 0.72f, fontContent, 8);
+			auditValue("Município", display(municipio), municipio, false);
+		}
+
+		FieldValue ambGer = tableValue(n.txt("infNFSe", "ambGer"), DESC_AMB_GER,
+				"NFSe/infNFSe/ambGer", "Descrição do ambiente gerador");
+		text("Ambiente Gerador: " + display(ambGer), 15.70f, 1.07f, fontContent, 6);
+		auditValue("Ambiente Gerador", display(ambGer), ambGer, false);
+
+		FieldValue tpAmb = tableValue(n.txt("infNFSe", "DPS", "infDPS", "tpAmb"), DESC_TP_AMB,
+				"NFSe/infNFSe/DPS/infDPS/tpAmb", "Descrição do tipo de ambiente");
+		text("Tipo de Ambiente: " + display(tpAmb), 15.70f, 1.32f, fontContent, 6);
+		auditValue("Tipo de Ambiente", display(tpAmb), tpAmb, false);
 	}
 
 	private void drawDadosNfse() throws Exception {
+		auditBlock = "DADOS DA NFS-e";
 		// divisória superior (única) com o cabeçalho; a inferior (4,34) é do
 		// prestador. Os campos seguem as posições da tabela 2.4.5
 		line(LEFT, 1.46f, RIGHT, 1.46f);
 		float y = 1.48f;
 
 		// chave de acesso
-		fieldCaps("CHAVE DE ACESSO DA NFS-e", n.chaveAcesso(), LEFT, y, 15.30f, 0.79f);
+		fieldCaps("CHAVE DE ACESSO DA NFS-e", formatted(n.chaveAcesso(), "NFSe/infNFSe/@Id",
+				"Remoção do prefixo NFS"), LEFT, y, 15.30f, 0.79f);
 
 		// linha 2
-		fieldCaps("NÚMERO DA NFS-e", n.txt("infNFSe", "nNFSe"), COLS[0], 2.27f, 5.11f, 0.69f);
-		fieldCaps("COMPETÊNCIA DA NFS-e", fmtDate(n.txt("infNFSe", "DPS", "infDPS", "dCompet")), COLS[1], 2.27f, 5.10f, 0.69f);
-		fieldCaps("DATA E HORA DA EMISSÃO DA NFS-e", fmtDateTime(n.txt("infNFSe", "dhProc")), COLS[2], 2.27f, 5.11f, 0.69f);
+		fieldCaps("NÚMERO DA NFS-e", raw(n.txt("infNFSe", "nNFSe"), "NFSe/infNFSe/nNFSe"), COLS[0], 2.27f, 5.11f, 0.69f);
+		fieldCaps("COMPETÊNCIA DA NFS-e", formatted(fmtDate(n.txt("infNFSe", "DPS", "infDPS", "dCompet")),
+				"NFSe/infNFSe/DPS/infDPS/dCompet", "Data DD/MM/AAAA"), COLS[1], 2.27f, 5.10f, 0.69f);
+		fieldCaps("DATA E HORA DA EMISSÃO DA NFS-e", formatted(fmtDateTime(n.txt("infNFSe", "dhProc")),
+				"NFSe/infNFSe/dhProc", "Data/hora DD/MM/AAAA HH:mm:ss sem conversão de fuso"), COLS[2], 2.27f, 5.11f, 0.69f);
 		// linha 3
-		fieldCaps("NÚMERO DA DPS", n.txt("infNFSe", "DPS", "infDPS", "nDPS"), COLS[0], 2.96f, 5.11f, 0.69f);
-		fieldCaps("SÉRIE DA DPS", n.txt("infNFSe", "DPS", "infDPS", "serie"), COLS[1], 2.96f, 5.10f, 0.69f);
-		fieldCaps("DATA E HORA DA EMISSÃO DA DPS", fmtDateTime(n.txt("infNFSe", "DPS", "infDPS", "dhEmi")), COLS[2], 2.96f, 5.11f, 0.69f);
+		fieldCaps("NÚMERO DA DPS", raw(n.txt("infNFSe", "DPS", "infDPS", "nDPS"), "NFSe/infNFSe/DPS/infDPS/nDPS"), COLS[0], 2.96f, 5.11f, 0.69f);
+		fieldCaps("SÉRIE DA DPS", raw(n.txt("infNFSe", "DPS", "infDPS", "serie"), "NFSe/infNFSe/DPS/infDPS/serie"), COLS[1], 2.96f, 5.10f, 0.69f);
+		fieldCaps("DATA E HORA DA EMISSÃO DA DPS", formatted(fmtDateTime(n.txt("infNFSe", "DPS", "infDPS", "dhEmi")),
+				"NFSe/infNFSe/DPS/infDPS/dhEmi", "Data/hora DD/MM/AAAA HH:mm:ss sem conversão de fuso"), COLS[2], 2.96f, 5.11f, 0.69f);
 		// linha 4 - "Emitente da NFS-e" com sombreamento (item 2.2.3)
 		shade(COLS[0], 3.65f, 5.11f, 0.65f);
-		fieldCaps("EMITENTE DA NFS-e", DESC_TP_EMIT.getOrDefault(n.txt("infNFSe", "DPS", "infDPS", "tpEmit"), "-"),
+		fieldCaps("EMITENTE DA NFS-e", tableValue(n.txt("infNFSe", "DPS", "infDPS", "tpEmit"), DESC_TP_EMIT,
+				"NFSe/infNFSe/DPS/infDPS/tpEmit", "Descrição do emitente da DPS"),
 				COLS[0], 3.65f, 5.11f, 0.65f);
-		fieldCaps("SITUAÇÃO DA NFS-e", DESC_CSTAT.getOrDefault(n.txt("infNFSe", "cStat"), n.txt("infNFSe", "cStat")),
+		fieldCaps("SITUAÇÃO DA NFS-e", tableValue(n.txt("infNFSe", "cStat"), DESC_CSTAT,
+				"NFSe/infNFSe/cStat", "Descrição da situação da NFS-e"),
 				COLS[1], 3.65f, 5.10f, 0.65f);
-		fieldCaps("FINALIDADE", DESC_FIN.getOrDefault(n.txt("infNFSe", "DPS", "infDPS", "IBSCBS", "finNFSe"), "-"),
+		fieldCaps("FINALIDADE", tableValue(n.txt("infNFSe", "DPS", "infDPS", "IBSCBS", "finNFSe"), DESC_FIN,
+				"NFSe/infNFSe/DPS/infDPS/IBSCBS/finNFSe", "Descrição da finalidade da NFS-e"),
 				COLS[2], 3.65f, 5.11f, 0.65f);
 
 		// QR Code (item 2.4.3): 1,52 x 1,52 cm em X 17,48 / Y 1,67
-		PDImageXObject qr = qrCode("https://www.nfse.gov.br/ConsultaPublica/?tpc=1&chave=" + n.chaveAcesso());
+		String qrUrl = "https://www.nfse.gov.br/ConsultaPublica/?tpc=1&chave=" + n.chaveAcesso();
+		PDImageXObject qr = qrCode(qrUrl);
 		image(qr, 17.48f, 1.67f, 1.52f, 1.52f);
+		auditValue("QR Code", qrUrl, formatted(qrUrl, "NFSe/infNFSe/@Id",
+				"URL oficial + chave de acesso sem o prefixo NFS"), false);
 
 		// complemento do QR Code: 3 linhas, 6pt, no quadro 0,68 x 4,72 em (15,80/3,36)
 		String[] qrTxt = {
@@ -223,44 +272,52 @@ public class DanfseGenerator {
 	}
 
 	private float drawPrestador(float y) throws Exception {
+		auditBlock = "PRESTADOR / FORNECEDOR";
 		float h = 2.57f;
 		String[] p = {"infNFSe", "DPS", "infDPS", "prest"};
 
 		blockTitle("PRESTADOR / FORNECEDOR", COLS[0], y, 5.11f, 0.63f);
 		line(LEFT, y, RIGHT, y);
-		field("CNPJ / CPF / NIF", fmtDoc(n.txt(cat(p, "CNPJ")), n.txt(cat(p, "CPF")), n.txt(cat(p, "NIF"))),
+		field("CNPJ / CPF / NIF", formatted(fmtDoc(n.txt(cat(p, "CNPJ")), n.txt(cat(p, "CPF")), n.txt(cat(p, "NIF"))),
+				"NFSe/infNFSe/DPS/infDPS/prest/CNPJ|CPF|NIF", "Seleção do identificador e máscara CNPJ/CPF"),
 				COLS[1], y, 5.10f, 0.63f);
-		field("Indicador Municipal (Inscrição)", n.txt(cat(p, "IM")), COLS[2], y, 5.11f, 0.63f);
-		field("Telefone", fmtFone(n.txt(cat(p, "fone"))), COLS[3], y, 5.08f, 0.63f);
+		field("Indicador Municipal (Inscrição)", raw(n.txt(cat(p, "IM")), "NFSe/infNFSe/DPS/infDPS/prest/IM"), COLS[2], y, 5.11f, 0.63f);
+		field("Telefone", formatted(fmtFone(n.txt(cat(p, "fone"))), "NFSe/infNFSe/DPS/infDPS/prest/fone", "Máscara de telefone"), COLS[3], y, 5.08f, 0.63f);
 		float y2 = y + 0.63f;
 		// prestador: leiaute só traz CNPJ; demais dados cadastrais vêm em infNFSe/emit
-		field("Nome / Nome Empresarial", n.txt("infNFSe", "emit", "xNome"), COLS[0], y2, 10.21f, 0.64f);
+		field("Nome / Nome Empresarial", raw(n.txt("infNFSe", "emit", "xNome"), "NFSe/infNFSe/emit/xNome"), COLS[0], y2, 10.21f, 0.64f);
 		// município/UF do emitente: nome em xLocEmi e UF em emit/enderNac; quando
 		// faltarem, resolve pelo código IBGE (cMun) conforme tabela 2.4.5
 		String cMunEmit = firstNonEmpty(n.txt("infNFSe", "emit", "enderNac", "cMun"),
 				n.txt(cat(p, "end", "endNac", "cMun")));
-		field("Município / Sigla UF",
-				munUf(firstNonEmpty(n.txt("infNFSe", "xLocEmi"), municipioNome(cMunEmit)),
-						firstNonEmpty(n.txt("infNFSe", "emit", "enderNac", "UF"), ufFromIbge(cMunEmit))),
+		String munEmit = firstNonEmpty(n.txt("infNFSe", "xLocEmi"), municipioNome(cMunEmit));
+		String ufEmit = firstNonEmpty(n.txt("infNFSe", "emit", "enderNac", "UF"), ufFromIbge(cMunEmit));
+		field("Município / Sigla UF", composed(munUf(munEmit, ufEmit),
+				"NFSe/infNFSe/xLocEmi + NFSe/infNFSe/emit/enderNac/cMun|UF",
+				"Conversão do código IBGE e concatenação Município / UF", !cMunEmit.isEmpty()),
 				COLS[2], y2, 5.11f, 0.64f);
-		field("Código IBGE / CEP", ibgeCep(cMunEmit,
+		field("Código IBGE / CEP", formatted(ibgeCep(cMunEmit,
 				firstNonEmpty(n.txt("infNFSe", "emit", "enderNac", "CEP"), n.txt(cat(p, "end", "endNac", "CEP")))),
+				"NFSe/infNFSe/emit/enderNac/cMun|CEP", "Concatenação código IBGE / CEP e máscara do CEP"),
 				COLS[3], y2, 5.08f, 0.64f);
 		float y3 = y2 + 0.64f;
-		field("Endereço", endereco(n, "infNFSe", "emit", "enderNac"), COLS[0], y3, 10.21f, 0.66f);
-		field("Email", n.txt("infNFSe", "emit", "email"), COLS[2], y3, 10.19f, 0.66f);
+		field("Endereço", formatted(endereco(n, "infNFSe", "emit", "enderNac"), "NFSe/infNFSe/emit/enderNac/xLgr|nro|xCpl|xBairro", "Concatenação dos componentes do endereço"), COLS[0], y3, 10.21f, 0.66f);
+		field("Email", raw(n.txt("infNFSe", "emit", "email"), "NFSe/infNFSe/emit/email"), COLS[2], y3, 10.19f, 0.66f);
 		float y4 = y3 + 0.66f;
 		field("Simples Nacional na Data de Competência",
-				DESC_OP_SIMP.getOrDefault(n.txt(cat(p, "regTrib", "opSimpNac")), "-"), COLS[0], y4, 5.11f, 0.64f);
+				tableValue(n.txt(cat(p, "regTrib", "opSimpNac")), DESC_OP_SIMP,
+						"NFSe/infNFSe/DPS/infDPS/prest/regTrib/opSimpNac", "Descrição da opção pelo Simples Nacional"), COLS[0], y4, 5.11f, 0.64f);
 		// tabela 2.4.5 indica Esq 10,51, mas o Anexo I posiciona na 2ª coluna
 		// (5,41), ao lado do Simples Nacional - o item 2.2.4 manda o Anexo I
 		// prevalecer na disposição dos campos
 		field("Regime de Apuração Tributária pelo SN",
-				DESC_REG_AP_SN.getOrDefault(n.txt(cat(p, "regTrib", "regApTribSN")), "-"), COLS[1], y4, 15.29f, 0.64f);
+				tableValue(n.txt(cat(p, "regTrib", "regApTribSN")), DESC_REG_AP_SN,
+						"NFSe/infNFSe/DPS/infDPS/prest/regTrib/regApTribSN", "Descrição do regime de apuração pelo Simples Nacional"), COLS[1], y4, 15.29f, 0.64f);
 		return y + h;
 	}
 
 	private float drawTomador(float y) throws Exception {
+		auditBlock = "TOMADOR / ADQUIRENTE";
 		String[] t = {"infNFSe", "DPS", "infDPS", "toma"};
 		if (!n.has(t)) {
 			return suppressedBlock(y, "TOMADOR/ADQUIRENTE DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e");
@@ -268,25 +325,30 @@ public class DanfseGenerator {
 		float h = 1.94f;
 		blockTitle("TOMADOR / ADQUIRENTE", COLS[0], y, 5.11f, 0.63f);
 		line(LEFT, y, RIGHT, y);
-		field("CNPJ / CPF / NIF", fmtDoc(n.txt(cat(t, "CNPJ")), n.txt(cat(t, "CPF")), n.txt(cat(t, "NIF"))),
+		field("CNPJ / CPF / NIF", formatted(fmtDoc(n.txt(cat(t, "CNPJ")), n.txt(cat(t, "CPF")), n.txt(cat(t, "NIF"))),
+				"NFSe/infNFSe/DPS/infDPS/toma/CNPJ|CPF|NIF", "Seleção do identificador e máscara CNPJ/CPF"),
 				COLS[1], y, 5.10f, 0.63f);
-		field("Indicador Municipal (Inscrição)", n.txt(cat(t, "IM")), COLS[2], y, 5.11f, 0.63f);
-		field("Telefone", fmtFone(n.txt(cat(t, "fone"))), COLS[3], y, 5.08f, 0.63f);
+		field("Indicador Municipal (Inscrição)", raw(n.txt(cat(t, "IM")), "NFSe/infNFSe/DPS/infDPS/toma/IM"), COLS[2], y, 5.11f, 0.63f);
+		field("Telefone", formatted(fmtFone(n.txt(cat(t, "fone"))), "NFSe/infNFSe/DPS/infDPS/toma/fone", "Máscara de telefone"), COLS[3], y, 5.08f, 0.63f);
 		float y2 = y + 0.63f;
-		field("Nome / Nome Empresarial", n.txt(cat(t, "xNome")), COLS[0], y2, 10.21f, 0.64f);
+		field("Nome / Nome Empresarial", raw(n.txt(cat(t, "xNome")), "NFSe/infNFSe/DPS/infDPS/toma/xNome"), COLS[0], y2, 10.21f, 0.64f);
 		String cMun = n.txt(cat(t, "end", "endNac", "cMun"));
-		field("Município / Sigla UF", munUf(municipioNome(cMun), ufFromIbge(cMun)), COLS[2], y2, 5.11f, 0.64f);
-		field("Código IBGE / CEP", ibgeCep(cMun, n.txt(cat(t, "end", "endNac", "CEP"))), COLS[3], y2, 5.08f, 0.64f);
+		field("Município / Sigla UF", composed(munUf(municipioNome(cMun), ufFromIbge(cMun)),
+				"NFSe/infNFSe/DPS/infDPS/toma/end/endNac/cMun", "Conversão IBGE e concatenação Município / UF", !cMun.isEmpty()), COLS[2], y2, 5.11f, 0.64f);
+		field("Código IBGE / CEP", formatted(ibgeCep(cMun, n.txt(cat(t, "end", "endNac", "CEP"))),
+				"NFSe/infNFSe/DPS/infDPS/toma/end/endNac/cMun|CEP", "Concatenação código IBGE / CEP e máscara do CEP"), COLS[3], y2, 5.08f, 0.64f);
 		float y3 = y2 + 0.64f;
-		field("Endereço", endereco(n, cat(t, "end")), COLS[0], y3, 10.21f, 0.67f);
-		field("Email", n.txt(cat(t, "email")), COLS[2], y3, 10.19f, 0.67f);
+		field("Endereço", formatted(endereco(n, cat(t, "end")), "NFSe/infNFSe/DPS/infDPS/toma/end/xLgr|nro|xCpl|xBairro", "Concatenação dos componentes do endereço"), COLS[0], y3, 10.21f, 0.67f);
+		field("Email", raw(n.txt(cat(t, "email")), "NFSe/infNFSe/DPS/infDPS/toma/email"), COLS[2], y3, 10.19f, 0.67f);
 		return y + h;
 	}
 
 	private float drawDestinatario(float y) throws Exception {
+		auditBlock = "DESTINATÁRIO DA OPERAÇÃO";
 		String[] d = {"infNFSe", "DPS", "infDPS", "IBSCBS", "dest"};
-		if (!n.has(d)) {
-			String msg = n.has("infNFSe", "DPS", "infDPS", "toma")
+		String indDest = n.txt("infNFSe", "DPS", "infDPS", "IBSCBS", "indDest");
+		if ("0".equals(indDest) || !n.has(d)) {
+			String msg = "0".equals(indDest) && n.has("infNFSe", "DPS", "infDPS", "toma")
 					? "O DESTINATÁRIO É O PRÓPRIO TOMADOR/ADQUIRENTE DA OPERAÇÃO"
 					: "DESTINATÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e";
 			return suppressedBlock(y, msg);
@@ -294,21 +356,25 @@ public class DanfseGenerator {
 		float h = 1.94f;
 		blockTitle("DESTINATÁRIO DA OPERAÇÃO", COLS[0], y, 5.11f, 0.63f);
 		line(LEFT, y, RIGHT, y);
-		field("CNPJ / CPF / NIF", fmtDoc(n.txt(cat(d, "CNPJ")), n.txt(cat(d, "CPF")), n.txt(cat(d, "NIF"))),
+		field("CNPJ / CPF / NIF", formatted(fmtDoc(n.txt(cat(d, "CNPJ")), n.txt(cat(d, "CPF")), n.txt(cat(d, "NIF"))),
+				"NFSe/infNFSe/DPS/infDPS/IBSCBS/dest/CNPJ|CPF|NIF", "Seleção do identificador e máscara CNPJ/CPF"),
 				COLS[1], y, 5.10f, 0.63f);
-		field("Telefone", fmtFone(n.txt(cat(d, "fone"))), COLS[3], y, 5.08f, 0.63f);
+		field("Telefone", formatted(fmtFone(n.txt(cat(d, "fone"))), "NFSe/infNFSe/DPS/infDPS/IBSCBS/dest/fone", "Máscara de telefone"), COLS[3], y, 5.08f, 0.63f);
 		float y2 = y + 0.63f;
-		field("Nome / Nome Empresarial", n.txt(cat(d, "xNome")), COLS[0], y2, 10.21f, 0.64f);
+		field("Nome / Nome Empresarial", raw(n.txt(cat(d, "xNome")), "NFSe/infNFSe/DPS/infDPS/IBSCBS/dest/xNome"), COLS[0], y2, 10.21f, 0.64f);
 		String cMun = n.txt(cat(d, "end", "endNac", "cMun"));
-		field("Município / Sigla UF", munUf(municipioNome(cMun), ufFromIbge(cMun)), COLS[2], y2, 5.11f, 0.64f);
-		field("Código IBGE / CEP", ibgeCep(cMun, n.txt(cat(d, "end", "endNac", "CEP"))), COLS[3], y2, 5.08f, 0.64f);
+		field("Município / Sigla UF", composed(munUf(municipioNome(cMun), ufFromIbge(cMun)),
+				"NFSe/infNFSe/DPS/infDPS/IBSCBS/dest/end/endNac/cMun", "Conversão IBGE e concatenação Município / UF", !cMun.isEmpty()), COLS[2], y2, 5.11f, 0.64f);
+		field("Código IBGE / CEP", formatted(ibgeCep(cMun, n.txt(cat(d, "end", "endNac", "CEP"))),
+				"NFSe/infNFSe/DPS/infDPS/IBSCBS/dest/end/endNac/cMun|CEP", "Concatenação código IBGE / CEP e máscara do CEP"), COLS[3], y2, 5.08f, 0.64f);
 		float y3 = y2 + 0.64f;
-		field("Endereço", endereco(n, cat(d, "end")), COLS[0], y3, 10.21f, 0.67f);
-		field("Email", n.txt(cat(d, "email")), COLS[2], y3, 10.19f, 0.67f);
+		field("Endereço", formatted(endereco(n, cat(d, "end")), "NFSe/infNFSe/DPS/infDPS/IBSCBS/dest/end/xLgr|nro|xCpl|xBairro", "Concatenação dos componentes do endereço"), COLS[0], y3, 10.21f, 0.67f);
+		field("Email", raw(n.txt(cat(d, "email")), "NFSe/infNFSe/DPS/infDPS/IBSCBS/dest/email"), COLS[2], y3, 10.19f, 0.67f);
 		return y + h;
 	}
 
 	private float drawIntermediario(float y) throws Exception {
+		auditBlock = "INTERMEDIÁRIO DA OPERAÇÃO";
 		String[] i = {"infNFSe", "DPS", "infDPS", "interm"};
 		if (!n.has(i)) {
 			return suppressedBlock(y, "INTERMEDIÁRIO DA OPERAÇÃO NÃO IDENTIFICADO NA NFS-e");
@@ -316,24 +382,28 @@ public class DanfseGenerator {
 		float h = 1.94f;
 		blockTitle("INTERMEDIÁRIO DA OPERAÇÃO", COLS[0], y, 5.11f, 0.63f);
 		line(LEFT, y, RIGHT, y);
-		field("CNPJ / CPF / NIF", fmtDoc(n.txt(cat(i, "CNPJ")), n.txt(cat(i, "CPF")), n.txt(cat(i, "NIF"))),
+		field("CNPJ / CPF / NIF", formatted(fmtDoc(n.txt(cat(i, "CNPJ")), n.txt(cat(i, "CPF")), n.txt(cat(i, "NIF"))),
+				"NFSe/infNFSe/DPS/infDPS/interm/CNPJ|CPF|NIF", "Seleção do identificador e máscara CNPJ/CPF"),
 				COLS[1], y, 5.10f, 0.63f);
-		field("Indicador Municipal (Inscrição)", n.txt(cat(i, "IM")), COLS[2], y, 5.11f, 0.63f);
-		field("Telefone", fmtFone(n.txt(cat(i, "fone"))), COLS[3], y, 5.08f, 0.63f);
+		field("Indicador Municipal (Inscrição)", raw(n.txt(cat(i, "IM")), "NFSe/infNFSe/DPS/infDPS/interm/IM"), COLS[2], y, 5.11f, 0.63f);
+		field("Telefone", formatted(fmtFone(n.txt(cat(i, "fone"))), "NFSe/infNFSe/DPS/infDPS/interm/fone", "Máscara de telefone"), COLS[3], y, 5.08f, 0.63f);
 		float y2 = y + 0.63f;
-		field("Nome / Nome Empresarial", n.txt(cat(i, "xNome")), COLS[0], y2, 10.21f, 0.64f);
+		field("Nome / Nome Empresarial", raw(n.txt(cat(i, "xNome")), "NFSe/infNFSe/DPS/infDPS/interm/xNome"), COLS[0], y2, 10.21f, 0.64f);
 		String cMun = n.txt(cat(i, "end", "endNac", "cMun"));
-		field("Município / Sigla UF", munUf(municipioNome(cMun), ufFromIbge(cMun)), COLS[2], y2, 5.11f, 0.64f);
-		field("Código IBGE / CEP", ibgeCep(cMun, n.txt(cat(i, "end", "endNac", "CEP"))), COLS[3], y2, 5.08f, 0.64f);
+		field("Município / Sigla UF", composed(munUf(municipioNome(cMun), ufFromIbge(cMun)),
+				"NFSe/infNFSe/DPS/infDPS/interm/end/endNac/cMun", "Conversão IBGE e concatenação Município / UF", !cMun.isEmpty()), COLS[2], y2, 5.11f, 0.64f);
+		field("Código IBGE / CEP", formatted(ibgeCep(cMun, n.txt(cat(i, "end", "endNac", "CEP"))),
+				"NFSe/infNFSe/DPS/infDPS/interm/end/endNac/cMun|CEP", "Concatenação código IBGE / CEP e máscara do CEP"), COLS[3], y2, 5.08f, 0.64f);
 		float y3 = y2 + 0.64f;
-		field("Endereço", endereco(n, cat(i, "end")), COLS[0], y3, 10.21f, 0.67f);
-		field("Email", n.txt(cat(i, "email")), COLS[2], y3, 10.19f, 0.67f);
+		field("Endereço", formatted(endereco(n, cat(i, "end")), "NFSe/infNFSe/DPS/infDPS/interm/end/xLgr|nro|xCpl|xBairro", "Concatenação dos componentes do endereço"), COLS[0], y3, 10.21f, 0.67f);
+		field("Email", raw(n.txt(cat(i, "email")), "NFSe/infNFSe/DPS/infDPS/interm/email"), COLS[2], y3, 10.19f, 0.67f);
 		return y + h;
 	}
 
 	private float drawServico(float y) throws Exception {
+		auditBlock = "SERVIÇO PRESTADO";
 		String[] s = {"infNFSe", "DPS", "infDPS", "serv"};
-		String descServ = n.txt(cat(s, "cServ", "xDescServ"));
+		String descServ = dashIfEmpty(n.txt(cat(s, "cServ", "xDescServ")));
 		List<String> descLines = wrap(descServ, BODY_W - 0.20f, fontContent, 7, 1300);
 		float descH = Math.max(0.63f, 0.30f + descLines.size() * 0.30f);
 		float h = 0.63f + 0.38f + descH;
@@ -341,16 +411,24 @@ public class DanfseGenerator {
 		blockTitle("SERVIÇO PRESTADO", COLS[0], y, 5.11f, 0.63f);
 		line(LEFT, y, RIGHT, y);
 		field("Código de Tributação Nacional / Municipal",
-				fmtCTribNac(n.txt(cat(s, "cServ", "cTribNac"))) + slash(n.txt(cat(s, "cServ", "cTribMun"))),
+				formatted(joinRequiredSlash(fmtCTribNac(n.txt(cat(s, "cServ", "cTribNac"))), n.txt(cat(s, "cServ", "cTribMun"))),
+						"NFSe/infNFSe/DPS/infDPS/serv/cServ/cTribNac + cTribMun", "Formatação do código nacional e concatenação com traço por componente ausente"),
 				COLS[1], y, 5.10f, 0.63f);
-		field("Código da NBS", fmtNbs(n.txt(cat(s, "cServ", "cNBS"))), COLS[2], y, 5.11f, 0.63f);
-		field("Local da Prestação / Sigla UF / País", localPrestacao(), COLS[3], y, 5.08f, 0.63f);
+		field("Código da NBS", formatted(fmtNbs(n.txt(cat(s, "cServ", "cNBS"))),
+				"NFSe/infNFSe/DPS/infDPS/serv/cServ/cNBS", "Formatação n.nnnn.nn.nn"), COLS[2], y, 5.11f, 0.63f);
+		field("Local da Prestação / Sigla UF / País", composed(localPrestacao(),
+				"NFSe/infNFSe/xLocPrestacao + NFSe/infNFSe/DPS/infDPS/serv/locPrest/cLocPrestacao|cPaisPrestacao",
+				"Conversão IBGE/UF, país ISO e concatenação Município / UF / País", true), COLS[3], y, 5.08f, 0.63f);
 
 		// descrição do código de tributação (sem label - tabela 2.4.5)
 		float y2 = y + 0.63f;
 		String xTribMun = n.txt("infNFSe", "xTribMun");
-		String descTrib = !xTribMun.isEmpty() ? xTribMun : n.txt("infNFSe", "xTribNac");
-		text(trunc(descTrib, BODY_W - 0.20f, fontContent, 7), LEFT + 0.10f, y2 + 0.28f, fontContent, 7);
+		String descTrib = dashIfEmpty(!xTribMun.isEmpty() ? xTribMun : n.txt("infNFSe", "xTribNac"));
+		String descTribImpresso = trunc(descTrib, BODY_W - 0.20f, fontContent, 7);
+		text(descTribImpresso, LEFT + 0.10f, y2 + 0.28f, fontContent, 7);
+		auditValue("Descrição do Código de Tributação Nacional / Municipal", descTribImpresso,
+				formatted(descTrib, "NFSe/infNFSe/xTribMun | NFSe/infNFSe/xTribNac",
+						"xTribMun quando preenchido; caso contrário xTribNac; truncamento visual"), false);
 
 		float y3 = y2 + 0.38f;
 		label("Descrição do Serviço", LEFT + 0.10f, y3 + 0.25f);
@@ -359,12 +437,16 @@ public class DanfseGenerator {
 			text(l, LEFT + 0.10f, ty, fontContent, 7);
 			ty += 0.30f;
 		}
+		auditValue("Descrição do Serviço", String.join("\n", descLines),
+				formatted(descServ, "NFSe/infNFSe/DPS/infDPS/serv/cServ/xDescServ",
+						"Conteúdo XML preservado; quebra de linha e truncamento visual até 1300 caracteres"), false);
 		return y + h;
 	}
 
 	private float drawIssqn(float y) throws Exception {
+		auditBlock = "TRIBUTAÇÃO MUNICIPAL (ISSQN)";
 		String[] tm = {"infNFSe", "DPS", "infDPS", "valores", "trib", "tribMun"};
-		if (!n.has(tm)) {
+		if (!n.has(tm) || "4".equals(n.txt(cat(tm, "tribISSQN")))) {
 			return suppressedBlock(y, "TRIBUTAÇÃO MUNICIPAL (ISSQN) - OPERAÇÃO NÃO SUJEITA AO ISSQN");
 		}
 		// linhas suprimíveis (nota 5)
@@ -377,8 +459,7 @@ public class DanfseGenerator {
 		String tpBM = n.txt("infNFSe", "valores", "tpBM");
 		String vCalcBM = firstNonEmpty(n.txt("infNFSe", "valores", "vCalcBM"),
 				n.txt(cat(tm, "BM", "vRedBCBM")));
-		String vDR = firstNonEmpty(n.txt("infNFSe", "DPS", "infDPS", "valores", "vDedRed", "vDR"),
-				n.txt("infNFSe", "valores", "vCalcDR"));
+		String vDR = totalDeducoesReducoes();
 		String vDescIncond = n.txt("infNFSe", "DPS", "infDPS", "valores", "vDescCondIncond", "vDescIncond");
 		boolean row3 = !(tpBM.isEmpty() && vCalcBM.isEmpty() && vDR.isEmpty() && vDescIncond.isEmpty());
 
@@ -386,39 +467,47 @@ public class DanfseGenerator {
 		float h = 0.63f + (row2 ? 0.65f : 0) + (row3 ? 0.65f : 0) + 0.64f;
 		blockTitle("TRIBUTAÇÃO MUNICIPAL (ISSQN)", COLS[0], y, 5.11f, 0.63f);
 		line(LEFT, y, RIGHT, y);
-		field("Tipo de Tributação do ISSQN", DESC_TRIB_ISSQN.getOrDefault(n.txt(cat(tm, "tribISSQN")), "-"),
+		field("Tipo de Tributação do ISSQN", tableValue(n.txt(cat(tm, "tribISSQN")), DESC_TRIB_ISSQN,
+				"NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/tribISSQN", "Descrição do tipo de tributação do ISSQN"),
 				COLS[1], y, 5.10f, 0.63f);
 		String cLocIncid = n.txt("infNFSe", "cLocIncid");
-		field("Município / Sigla UF / País da Incidência do ISSQN",
-				joinSlash(firstNonEmpty(n.txt("infNFSe", "xLocIncid"), municipioNome(cLocIncid)),
+		field("Município / Sigla UF / País da Incidência do ISSQN", composed(
+				joinRequiredSlash(firstNonEmpty(n.txt("infNFSe", "xLocIncid"), municipioNome(cLocIncid)),
 						ufFromIbge(cLocIncid),
 						firstNonEmpty(n.txt(cat(tm, "cPaisResult")), cLocIncid.isEmpty() ? "" : "BR")),
+				"NFSe/infNFSe/xLocIncid|cLocIncid + NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/cPaisResult",
+				"Conversão IBGE/UF, país ISO e concatenação Município / UF / País", !cLocIncid.isEmpty()),
 				COLS[2], y, 10.19f, 0.63f);
 		float r = y + 0.63f;
 		if (row2) {
-			field("Regime Especial de Tributação do ISSQN", DESC_REG_ESP.getOrDefault(regEsp, regEsp),
+			field("Regime Especial de Tributação do ISSQN", tableValue(regEsp, DESC_REG_ESP,
+					"NFSe/infNFSe/DPS/infDPS/prest/regTrib/regEspTrib", "Descrição do regime especial de tributação"),
 					COLS[0], r, 5.11f, 0.65f);
-			field("Tipo de Imunidade do ISSQN", tpImun.isEmpty() ? "-" : tpImun, COLS[1], r, 5.10f, 0.65f);
-			field("Suspensão da Exigibilidade do ISSQN", tpSusp.isEmpty() ? "-" : tpSusp, COLS[2], r, 5.11f, 0.65f);
-			field("Número Processo Suspensão", nProc, COLS[3], r, 5.08f, 0.65f);
+			field("Tipo de Imunidade do ISSQN", tableValue(tpImun, DESC_TP_IMUNIDADE,
+					"NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/tpImunidade", "Descrição do tipo de imunidade"), COLS[1], r, 5.10f, 0.65f);
+			field("Suspensão da Exigibilidade do ISSQN", tableValue(tpSusp, DESC_TP_SUSP,
+					"NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/exigSusp/tpSusp", "Descrição da suspensão de exigibilidade"), COLS[2], r, 5.11f, 0.65f);
+			field("Número Processo Suspensão", raw(nProc, "NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/exigSusp/nProcesso"), COLS[3], r, 5.08f, 0.65f);
 			r += 0.65f;
 		}
 		if (row3) {
-			field("Benefício Municipal", tpBM, COLS[0], r, 5.11f, 0.65f);
-			field("Cálculo do BM", money(vCalcBM), COLS[1], r, 5.10f, 0.65f);
-			field("Total Deduções/Reduções", money(vDR), COLS[2], r, 5.11f, 0.65f);
-			field("Desconto Incondicionado", money(vDescIncond), COLS[3], r, 5.08f, 0.65f);
+			field("Benefício Municipal", tableValue(tpBM, DESC_TP_BM, "NFSe/infNFSe/valores/tpBM", "Descrição do benefício municipal"), COLS[0], r, 5.11f, 0.65f);
+			field("Cálculo do BM", formatted(money(vCalcBM), "NFSe/infNFSe/valores/vCalcBM | NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/BM/vRedBCBM", "Valor monetário brasileiro"), COLS[1], r, 5.10f, 0.65f);
+			field("Total Deduções/Reduções", formatted(money(vDR), "NFSe/infNFSe/DPS/infDPS/valores/vDedRed/vDR | NFSe/infNFSe/valores/vCalcDR + NFSe/infNFSe/IBSCBS/valores/vCalcReeRepRes", "Prioriza vDR; na ausência, soma vCalcDR + vCalcReeRepRes"), COLS[2], r, 5.11f, 0.65f);
+			field("Desconto Incondicionado", formatted(money(vDescIncond), "NFSe/infNFSe/DPS/infDPS/valores/vDescCondIncond/vDescIncond", "Valor monetário brasileiro"), COLS[3], r, 5.08f, 0.65f);
 			r += 0.65f;
 		}
-		field("BC ISSQN", money(n.txt("infNFSe", "valores", "vBC")), COLS[0], r, 5.11f, 0.64f);
-		field("Alíquota Aplicada", pct(n.txt("infNFSe", "valores", "pAliqAplic")), COLS[1], r, 5.10f, 0.64f);
-		field("Retenção do ISSQN", DESC_RET_ISSQN.getOrDefault(n.txt(cat(tm, "tpRetISSQN")), "-"),
+		field("BC ISSQN", formatted(money(n.txt("infNFSe", "valores", "vBC")), "NFSe/infNFSe/valores/vBC", "Valor monetário brasileiro"), COLS[0], r, 5.11f, 0.64f);
+		field("Alíquota Aplicada", formatted(pct(n.txt("infNFSe", "valores", "pAliqAplic")), "NFSe/infNFSe/valores/pAliqAplic", "Percentual brasileiro"), COLS[1], r, 5.10f, 0.64f);
+		field("Retenção do ISSQN", tableValue(n.txt(cat(tm, "tpRetISSQN")), DESC_RET_ISSQN,
+				"NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/tpRetISSQN", "Descrição da retenção do ISSQN"),
 				COLS[2], r, 5.11f, 0.64f);
-		field("ISSQN Apurado", money(n.txt("infNFSe", "valores", "vISSQN")), COLS[3], r, 5.08f, 0.64f);
+		field("ISSQN Apurado", formatted(money(n.txt("infNFSe", "valores", "vISSQN")), "NFSe/infNFSe/valores/vISSQN", "Valor monetário brasileiro; sem recálculo"), COLS[3], r, 5.08f, 0.64f);
 		return y + h;
 	}
 
 	private float drawTribFederal(float y) throws Exception {
+		auditBlock = "TRIBUTAÇÃO FEDERAL (EXCETO CBS)";
 		String[] tf = {"infNFSe", "DPS", "infDPS", "valores", "trib", "tribFed"};
 		// nota 6: linha PIS/COFINS impressa para competência até o fim de 2026
 		String compet = n.txt("infNFSe", "DPS", "infDPS", "dCompet");
@@ -427,83 +516,95 @@ public class DanfseGenerator {
 		float h = 0.63f + (pisRow ? 0.65f : 0);
 		blockTitle("TRIBUTAÇÃO FEDERAL (EXCETO CBS)", COLS[0], y, 5.11f, 0.63f);
 		line(LEFT, y, RIGHT, y);
-		field("IRRF", money(n.txt(cat(tf, "vRetIRRF"))), COLS[1], y, 5.10f, 0.63f);
-		field("Contribuição Previdenciária - Retida", money(n.txt(cat(tf, "vRetCP"))), COLS[2], y, 5.11f, 0.63f);
-		field("Contribuições Sociais - Retidas", money(n.txt(cat(tf, "vRetCSLL"))), COLS[3], y, 5.08f, 0.63f);
+		field("IRRF", formatted(money(n.txt(cat(tf, "vRetIRRF"))), "NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/vRetIRRF", "Valor monetário brasileiro"), COLS[1], y, 5.10f, 0.63f);
+		field("Contribuição Previdenciária - Retida", formatted(money(n.txt(cat(tf, "vRetCP"))), "NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/vRetCP", "Valor monetário brasileiro"), COLS[2], y, 5.11f, 0.63f);
+		field("Contribuições Sociais - Retidas", formatted(money(n.txt(cat(tf, "vRetCSLL"))), "NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/vRetCSLL", "Valor monetário brasileiro"), COLS[3], y, 5.08f, 0.63f);
 		if (pisRow) {
 			float r = y + 0.63f;
-			field("PIS - Débito Apuração Própria", money(n.txt(cat(tf, "piscofins", "vPis"))), COLS[0], r, 5.11f, 0.65f);
-			field("COFINS - Débito Apuração Própria", money(n.txt(cat(tf, "piscofins", "vCofins"))), COLS[1], r, 5.10f, 0.65f);
+			field("PIS - Débito Apuração Própria", formatted(money(n.txt(cat(tf, "piscofins", "vPis"))), "NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/piscofins/vPis", "Valor monetário brasileiro"), COLS[0], r, 5.11f, 0.65f);
+			field("COFINS - Débito Apuração Própria", formatted(money(n.txt(cat(tf, "piscofins", "vCofins"))), "NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/piscofins/vCofins", "Valor monetário brasileiro"), COLS[1], r, 5.10f, 0.65f);
 			field("Descrição Contrib. Sociais - Retidas",
-					DESC_RET_PISCOFINS.getOrDefault(n.txt(cat(tf, "piscofins", "tpRetPisCofins")),
-							n.txt(cat(tf, "piscofins", "tpRetPisCofins"))),
+					tableValue(n.txt(cat(tf, "piscofins", "tpRetPisCofins")), DESC_RET_PISCOFINS,
+							"NFSe/infNFSe/DPS/infDPS/valores/trib/tribFed/piscofins/tpRetPisCofins", "Descrição da retenção PIS/COFINS/CSLL"),
 					COLS[2], r, 10.19f, 0.65f);
 		}
 		return y + h;
 	}
 
 	private float drawIbsCbs(float y) throws Exception {
+		auditBlock = "TRIBUTAÇÃO IBS / CBS";
 		String[] ib = {"infNFSe", "IBSCBS"};
 		String[] dpsIb = {"infNFSe", "DPS", "infDPS", "IBSCBS"};
 		float h = 0.63f + 0.64f + 0.65f + 0.66f;
 		blockTitle("TRIBUTAÇÃO IBS / CBS", COLS[0], y, 5.11f, 0.63f);
 		line(LEFT, y, RIGHT, y);
 		field("CST / cClassTrib",
-				n.txt(cat(dpsIb, "valores", "trib", "gIBSCBS", "CST")) + slash(n.txt(cat(dpsIb, "valores", "trib", "gIBSCBS", "cClassTrib"))),
+				formatted(joinRequiredSlash(n.txt(cat(dpsIb, "valores", "trib", "gIBSCBS", "CST")), n.txt(cat(dpsIb, "valores", "trib", "gIBSCBS", "cClassTrib"))),
+						"NFSe/infNFSe/DPS/infDPS/IBSCBS/valores/trib/gIBSCBS/CST + cClassTrib", "Concatenação CST / cClassTrib com traço por componente ausente"),
 				COLS[1], y, 5.10f, 0.63f);
 		field("Indicador de Operação / Código IBGE Incidência / Município Incidência / Sigla UF",
-				joinSlash(n.txt(cat(dpsIb, "cIndOp")), n.txt(cat(ib, "cLocalidadeIncid")),
-						n.txt(cat(ib, "xLocalidadeIncid")), ufFromIbge(n.txt(cat(ib, "cLocalidadeIncid")))),
+				composed(joinRequiredSlash(n.txt(cat(dpsIb, "cIndOp")), n.txt(cat(ib, "cLocalidadeIncid")),
+						firstNonEmpty(n.txt(cat(ib, "xLocalidadeIncid")), municipioNome(n.txt(cat(ib, "cLocalidadeIncid")))),
+						ufFromIbge(n.txt(cat(ib, "cLocalidadeIncid")))),
+						"NFSe/infNFSe/DPS/infDPS/IBSCBS/cIndOp + NFSe/infNFSe/IBSCBS/cLocalidadeIncid|xLocalidadeIncid",
+						"Conversão IBGE/UF e concatenação dos quatro componentes", !n.txt(cat(ib, "cLocalidadeIncid")).isEmpty()),
 				COLS[2], y, 10.19f, 0.63f);
 
 		float r = y + 0.63f;
-		field("Exclusões e Reduções da Base de Cálculo", money(somaExclusoes()), COLS[0], r, 5.11f, 0.64f);
-		field("Base de Cálculo Após Exclusões e Reduções", money(n.txt(cat(ib, "valores", "vBC"))), COLS[1], r, 5.10f, 0.64f);
+		field("Exclusões e Reduções da Base de Cálculo", formatted(money(somaExclusoes()),
+				"vDescIncond + vCalcReeRepRes + vISSQN + vPis + vCofins", "Soma expressamente determinada pela NT 008"), COLS[0], r, 5.11f, 0.64f);
+		field("Base de Cálculo Após Exclusões e Reduções", formatted(money(n.txt(cat(ib, "valores", "vBC"))), "NFSe/infNFSe/IBSCBS/valores/vBC", "Valor monetário brasileiro; sem recálculo"), COLS[1], r, 5.10f, 0.64f);
 		field("Red. Alíquota IBS / Red. Alíquota CBS",
-				pct(n.txt(cat(ib, "valores", "uf", "pRedAliqUF"))) + " / " + pct(n.txt(cat(ib, "valores", "mun", "pRedAliqMun")))
-						+ " / " + pct(n.txt(cat(ib, "valores", "fed", "pRedAliqCBS"))),
+				formatted(joinRequiredSlash(pct(n.txt(cat(ib, "valores", "uf", "pRedAliqUF"))), pct(n.txt(cat(ib, "valores", "mun", "pRedAliqMun"))),
+						pct(n.txt(cat(ib, "valores", "fed", "pRedAliqCBS")))), "NFSe/infNFSe/IBSCBS/valores/uf/pRedAliqUF + mun/pRedAliqMun + fed/pRedAliqCBS", "Percentuais brasileiros e concatenação com traço por ausência"),
 				COLS[2], r, 5.11f, 0.64f);
 		field("Alíquota - IBS UF / IBS Mun",
-				pct(n.txt(cat(ib, "valores", "uf", "pIBSUF"))) + " / " + pct(n.txt(cat(ib, "valores", "mun", "pIBSMun"))),
+				formatted(joinRequiredSlash(pct(n.txt(cat(ib, "valores", "uf", "pIBSUF"))), pct(n.txt(cat(ib, "valores", "mun", "pIBSMun")))), "NFSe/infNFSe/IBSCBS/valores/uf/pIBSUF + mun/pIBSMun", "Percentuais brasileiros e concatenação com traço por ausência"),
 				COLS[3], r, 5.08f, 0.64f);
 
 		r += 0.64f;
-		field("Alíq. Efetiva Municipal - IBS", pct(n.txt(cat(ib, "valores", "mun", "pAliqEfetMun"))), COLS[0], r, 5.11f, 0.65f);
-		field("Valor Apurado Municipal - IBS", money(n.txt(cat(ib, "totCIBS", "gIBS", "gIBSMunTot", "vIBSMun"))), COLS[1], r, 5.10f, 0.65f);
-		field("Alíq. Efetiva Estadual - IBS", pct(n.txt(cat(ib, "valores", "uf", "pAliqEfetUF"))), COLS[2], r, 5.11f, 0.65f);
-		field("Valor Apurado Estadual - IBS", money(n.txt(cat(ib, "totCIBS", "gIBS", "gIBSUFTot", "vIBSUF"))), COLS[3], r, 5.08f, 0.65f);
+		field("Alíq. Efetiva Municipal - IBS", formatted(pct(n.txt(cat(ib, "valores", "mun", "pAliqEfetMun"))), "NFSe/infNFSe/IBSCBS/valores/mun/pAliqEfetMun", "Percentual brasileiro"), COLS[0], r, 5.11f, 0.65f);
+		field("Valor Apurado Municipal - IBS", formatted(money(n.txt(cat(ib, "totCIBS", "gIBS", "gIBSMunTot", "vIBSMun"))), "NFSe/infNFSe/IBSCBS/totCIBS/gIBS/gIBSMunTot/vIBSMun", "Valor monetário brasileiro; sem recálculo"), COLS[1], r, 5.10f, 0.65f);
+		field("Alíq. Efetiva Estadual - IBS", formatted(pct(n.txt(cat(ib, "valores", "uf", "pAliqEfetUF"))), "NFSe/infNFSe/IBSCBS/valores/uf/pAliqEfetUF", "Percentual brasileiro"), COLS[2], r, 5.11f, 0.65f);
+		field("Valor Apurado Estadual - IBS", formatted(money(n.txt(cat(ib, "totCIBS", "gIBS", "gIBSUFTot", "vIBSUF"))), "NFSe/infNFSe/IBSCBS/totCIBS/gIBS/gIBSUFTot/vIBSUF", "Valor monetário brasileiro; sem recálculo"), COLS[3], r, 5.08f, 0.65f);
 
 		r += 0.65f;
-		field("Valor Total Apurado - IBS", money(n.txt(cat(ib, "totCIBS", "gIBS", "vIBSTot"))), COLS[0], r, 5.11f, 0.66f);
-		field("Alíquota - CBS", pct(n.txt(cat(ib, "valores", "fed", "pCBS"))), COLS[1], r, 5.10f, 0.66f);
-		field("Alíquota Efetiva - CBS", pct(n.txt(cat(ib, "valores", "fed", "pAliqEfetCBS"))), COLS[2], r, 5.11f, 0.66f);
-		field("Valor Total Apurado - CBS", money(n.txt(cat(ib, "totCIBS", "gCBS", "vCBS"))), COLS[3], r, 5.08f, 0.66f);
+		field("Valor Total Apurado - IBS", formatted(money(n.txt(cat(ib, "totCIBS", "gIBS", "vIBSTot"))), "NFSe/infNFSe/IBSCBS/totCIBS/gIBS/vIBSTot", "Valor monetário brasileiro; sem recálculo"), COLS[0], r, 5.11f, 0.66f);
+		field("Alíquota - CBS", formatted(pct(n.txt(cat(ib, "valores", "fed", "pCBS"))), "NFSe/infNFSe/IBSCBS/valores/fed/pCBS", "Percentual brasileiro"), COLS[1], r, 5.10f, 0.66f);
+		field("Alíquota Efetiva - CBS", formatted(pct(n.txt(cat(ib, "valores", "fed", "pAliqEfetCBS"))), "NFSe/infNFSe/IBSCBS/valores/fed/pAliqEfetCBS", "Percentual brasileiro"), COLS[2], r, 5.11f, 0.66f);
+		field("Valor Total Apurado - CBS", formatted(money(n.txt(cat(ib, "totCIBS", "gCBS", "vCBS"))), "NFSe/infNFSe/IBSCBS/totCIBS/gCBS/vCBS", "Valor monetário brasileiro; sem recálculo"), COLS[3], r, 5.08f, 0.66f);
 		return y + h;
 	}
 
 	private float drawValorTotal(float y) throws Exception {
+		auditBlock = "VALOR TOTAL DA NFS-e";
 		float h = 0.67f + 0.69f;
 		blockTitle("VALOR TOTAL DA NFS-e", COLS[0], y, 5.11f, 0.67f);
 		line(LEFT, y, RIGHT, y);
-		field("Valor da Operação / Serviço", money(n.txt("infNFSe", "DPS", "infDPS", "valores", "vServPrest", "vServ")),
+		field("Valor da Operação / Serviço", formatted(money(n.txt("infNFSe", "DPS", "infDPS", "valores", "vServPrest", "vServ")),
+				"NFSe/infNFSe/DPS/infDPS/valores/vServPrest/vServ", "Valor monetário brasileiro; sem recálculo"),
 				COLS[1], y, 5.10f, 0.67f);
-		field("Desconto Incondicionado", money(n.txt("infNFSe", "DPS", "infDPS", "valores", "vDescCondIncond", "vDescIncond")),
+		field("Desconto Incondicionado", formatted(money(n.txt("infNFSe", "DPS", "infDPS", "valores", "vDescCondIncond", "vDescIncond")),
+				"NFSe/infNFSe/DPS/infDPS/valores/vDescCondIncond/vDescIncond", "Valor monetário brasileiro; sem recálculo"),
 				COLS[2], y, 5.11f, 0.67f);
-		field("Desconto Condicionado", money(n.txt("infNFSe", "DPS", "infDPS", "valores", "vDescCondIncond", "vDescCond")),
+		field("Desconto Condicionado", formatted(money(n.txt("infNFSe", "DPS", "infDPS", "valores", "vDescCondIncond", "vDescCond")),
+				"NFSe/infNFSe/DPS/infDPS/valores/vDescCondIncond/vDescCond", "Valor monetário brasileiro; sem recálculo"),
 				COLS[3], y, 5.08f, 0.67f);
 		float r = y + 0.67f;
-		field("Total das Retenções (ISSQN / Federais)", money(n.txt("infNFSe", "valores", "vTotalRet")), COLS[0], r, 5.11f, 0.69f);
-		field("Valor Líquido da NFS-e", money(n.txt("infNFSe", "valores", "vLiq")), COLS[1], r, 5.10f, 0.69f);
-		field("Total do IBS/CBS", money(somaIbsCbs()), COLS[2], r, 5.11f, 0.69f);
+		field("Total das Retenções (ISSQN / Federais)", formatted(money(n.txt("infNFSe", "valores", "vTotalRet")), "NFSe/infNFSe/valores/vTotalRet", "Valor monetário brasileiro; tag totalizadora, sem recálculo"), COLS[0], r, 5.11f, 0.69f);
+		field("Valor Líquido da NFS-e", formatted(money(n.txt("infNFSe", "valores", "vLiq")), "NFSe/infNFSe/valores/vLiq", "Valor monetário brasileiro; tag totalizadora, sem recálculo"), COLS[1], r, 5.10f, 0.69f);
+		field("Total do IBS/CBS", formatted(money(somaIbsCbs()), "NFSe/infNFSe/IBSCBS/totCIBS/gIBS/vIBSTot + NFSe/infNFSe/IBSCBS/totCIBS/gCBS/vCBS", "Soma expressamente determinada pela NT 008"), COLS[2], r, 5.11f, 0.69f);
 		// "Valor Líquido da NFS-e + IBS/CBS" com sombreamento (item 2.2.3) -
 		// a célula vai até a borda direita do corpo
 		shade(COLS[3], r, RIGHT - COLS[3], 0.69f);
-		field("Valor Líquido da NFS-e + IBS/CBS", money(n.txt("infNFSe", "IBSCBS", "totCIBS", "vTotNF")),
+		field("Valor Líquido da NFS-e + IBS/CBS", formatted(money(n.txt("infNFSe", "IBSCBS", "totCIBS", "vTotNF")),
+				"NFSe/infNFSe/IBSCBS/totCIBS/vTotNF", "Valor monetário brasileiro; tag totalizadora, sem recálculo"),
 				COLS[3], r, RIGHT - COLS[3], 0.69f);
 		return y + h;
 	}
 
 	private void drawInfoComplementares(float y) throws Exception {
+		auditBlock = "INFORMAÇÕES COMPLEMENTARES";
 		float h = BOTTOM - y;
 		blockStrip("INFORMAÇÕES COMPLEMENTARES", y);
 		line(LEFT, y, RIGHT, y);
@@ -536,7 +637,17 @@ public class DanfseGenerator {
 			text(l, LEFT + 0.10f, ty, fontContent, 7);
 			ty += 0.30f;
 		}
-		text(trunc(totais, BODY_W - 0.20f, fontContent, 7), LEFT + 0.10f, ty, fontContent, 7);
+		String totaisImpresso = trunc(totais, BODY_W - 0.20f, fontContent, 7);
+		text(totaisImpresso, LEFT + 0.10f, ty, fontContent, 7);
+		String infoImpresso = String.join("\n", lines);
+		if (!infoImpresso.isEmpty()) {
+			infoImpresso += "\n";
+		}
+		infoImpresso += totaisImpresso;
+		auditValue("Informações Complementares", infoImpresso,
+				formatted(infoImpresso,
+						"NFSe/infNFSe/DPS/infDPS/serv/infoCompl + subst + obra + IBSCBS/imovel + atvEvento + NFSe/infNFSe/xOutInf + valores/trib/totTrib",
+						"Ordem da NT 008, grupos separados por pipe, quebra/truncamento visual e linha fixa de Totais Aproximados"), false);
 	}
 
 	/**
@@ -545,6 +656,7 @@ public class DanfseGenerator {
 	 * com três células e labels em caixa alta 7pt negrito.
 	 */
 	private void drawCanhoto() throws Exception {
+		auditBlock = "CANHOTO";
 		float y = CANHOTO_TOP, h = CANHOTO_H;
 		rect(0.30f, y, 20.40f, h);
 		cs.stroke();
@@ -554,8 +666,11 @@ public class DanfseGenerator {
 		text("IDENTIFICAÇÃO E ASSINATURA", 5.51f, y + 0.28f, fontBold, 7);
 		text("Nº NFS-e / CHAVE NFS-e", 10.61f, y + 0.28f, fontBold, 7);
 		// id da NFS-e sem o prefixo "NFS" (tabela 2.4.5). Ex.: nnn / nnn
-		text(trunc(n.txt("infNFSe", "nNFSe") + " / " + n.chaveAcesso(), 10.0f, fontContent, 7),
+		String numeroChave = trunc(joinRequiredSlash(n.txt("infNFSe", "nNFSe"), n.chaveAcesso()), 10.0f, fontContent, 7);
+		text(numeroChave,
 				10.61f, y + h - 0.12f, fontContent, 7);
+		auditValue("Nº NFS-e / Chave NFS-e", numeroChave,
+				formatted(numeroChave, "NFSe/infNFSe/nNFSe + NFSe/infNFSe/@Id", "Concatenação e remoção do prefixo NFS da chave"), false);
 	}
 
 	private void watermark(String txt) throws Exception {
@@ -580,6 +695,9 @@ public class DanfseGenerator {
 		line(LEFT, y, RIGHT, y);
 		// exemplos do item 2.4.5.1: texto centralizado, fundo branco, peso normal
 		textCenter(msg, LEFT, BODY_W, y + 0.23f, fontContent, 7);
+		audit.add(new DanfseAuditEntry(auditBlock, auditBlock, msg,
+				origemFraseEspecial(auditBlock), "Frase especial de bloco prevista na NT 008",
+				false, false, true));
 		return y + h;
 	}
 
@@ -618,18 +736,70 @@ public class DanfseGenerator {
 	}
 
 	/** Campo com label 6pt (item 2.4.2) e conteúdo 7pt. */
-	private void field(String lbl, String value, float x, float y, float w, float h) throws Exception {
+	private void field(String lbl, FieldValue value, float x, float y, float w, float h) throws Exception {
 		label(lbl, x + 0.10f, y + 0.25f);
-		String v = (value == null || value.trim().isEmpty()) ? "-" : value.trim();
-		text(trunc(v, w - 0.20f, fontContent, 7), x + 0.10f, y + h - 0.12f, fontContent, 7);
+		String v = display(value);
+		String printed = trunc(v, w - 0.20f, fontContent, 7);
+		text(printed, x + 0.10f, y + h - 0.12f, fontContent, 7);
+		auditValue(lbl, printed, value, false);
 	}
 
 	/** Campo com label 7pt caixa alta (item 2.4.2 - identificação e Anexo I).
 	 *  O label deve vir já em caixa alta, preservando a grafia "NFS-e". */
-	private void fieldCaps(String lbl, String value, float x, float y, float w, float h) throws Exception {
+	private void fieldCaps(String lbl, FieldValue value, float x, float y, float w, float h) throws Exception {
 		text(trunc(lbl, w - 0.2f, fontBold, 7), x + 0.10f, y + 0.28f, fontBold, 7);
-		String v = (value == null || value.trim().isEmpty()) ? "-" : value.trim();
-		text(trunc(v, w - 0.20f, fontContent, 7), x + 0.10f, y + h - 0.14f, fontContent, 7);
+		String v = display(value);
+		String printed = trunc(v, w - 0.20f, fontContent, 7);
+		text(printed, x + 0.10f, y + h - 0.14f, fontContent, 7);
+		auditValue(lbl, printed, value, false);
+	}
+
+	private FieldValue raw(String value, String source) {
+		return new FieldValue(value, source, "Sem formatação além do limite visual previsto", false);
+	}
+
+	private FieldValue formatted(String value, String source, String rule) {
+		return new FieldValue(value, source, rule, false);
+	}
+
+	private FieldValue composed(String value, String source, String rule, boolean tableConverted) {
+		return new FieldValue(value, source, rule, tableConverted);
+	}
+
+	private FieldValue tableValue(String rawValue, Map<String, String> table, String source, String rule) {
+		String value = rawValue == null ? "" : rawValue.trim();
+		boolean converted = !value.isEmpty() && table.containsKey(value);
+		return new FieldValue(converted ? table.get(value) : value, source, rule, converted);
+	}
+
+	private static String display(FieldValue value) {
+		return value == null || value.value == null || value.value.trim().isEmpty() ? "-" : value.value.trim();
+	}
+
+	private void auditValue(String label, String printed, FieldValue value, boolean specialBlock) {
+		audit.add(new DanfseAuditEntry(auditBlock, label, printed, value.source, value.rule,
+				value.usedDash, value.tableConverted, specialBlock));
+	}
+
+	private static boolean containsMissingMarker(String value) {
+		if (value == null || value.trim().isEmpty() || "-".equals(value.trim())) {
+			return true;
+		}
+		String v = value.trim();
+		return v.startsWith("- / ") || v.endsWith(" / -") || v.contains(" / - / ");
+	}
+
+	private static String origemFraseEspecial(String block) {
+		if ("TOMADOR / ADQUIRENTE".equals(block)) {
+			return "NFSe/infNFSe/DPS/infDPS/toma";
+		}
+		if ("DESTINATÁRIO DA OPERAÇÃO".equals(block)) {
+			return "NFSe/infNFSe/DPS/infDPS/IBSCBS/indDest + dest + NFSe/infNFSe/DPS/infDPS/toma";
+		}
+		if ("INTERMEDIÁRIO DA OPERAÇÃO".equals(block)) {
+			return "NFSe/infNFSe/DPS/infDPS/interm";
+		}
+		return "NFSe/infNFSe/DPS/infDPS/valores/trib/tribMun/tribISSQN";
 	}
 
 	private void label(String lbl, float x, float yBase) throws Exception {
@@ -715,16 +885,14 @@ public class DanfseGenerator {
 		return out;
 	}
 
-	/** Remove caracteres fora do WinAnsi suportado pelas fontes padrão. */
+	/** Preserva Unicode do XML e normaliza somente controles para espaço visual. */
 	private static String sanitize(String s) {
 		StringBuilder sb = new StringBuilder(s.length());
 		for (char c : s.toCharArray()) {
 			if (c == '\n' || c == '\r' || c == '\t') {
 				sb.append(' ');
-			} else if (c >= 32 && c <= 255) {
+			} else if (!Character.isISOControl(c)) {
 				sb.append(c);
-			} else {
-				sb.append('?');
 			}
 		}
 		return sb.toString();
@@ -897,22 +1065,45 @@ public class DanfseGenerator {
 		String[] loc = {"infNFSe", "DPS", "infDPS", "serv", "locPrest"};
 		String cLoc = n.txt(cat(loc, "cLocPrestacao"));
 		String mun = firstNonEmpty(n.txt("infNFSe", "xLocPrestacao"), municipioNome(cLoc));
-		String pais = firstNonEmpty(n.txt(cat(loc, "cPaisPrestacao")), "BR");
-		return joinSlash(mun, ufFromIbge(cLoc), pais);
+		String pais = n.txt(cat(loc, "cPaisPrestacao"));
+		if (pais.isEmpty() && !cLoc.isEmpty()) {
+			pais = "BR"; // código IBGE municipal implica localidade brasileira
+		}
+		return joinRequiredSlash(mun, ufFromIbge(cLoc), pais);
 	}
 
-	/** Concatena as partes não vazias com " / " (padrão "Município / UF / País"). */
-	private static String joinSlash(String... parts) {
+	/** Concatena campos compostos e preserva o traço de cada componente ausente. */
+	private static String joinRequiredSlash(String... parts) {
 		StringBuilder sb = new StringBuilder();
 		for (String p : parts) {
-			if (p != null && !p.isEmpty()) {
-				if (sb.length() > 0) {
-					sb.append(" / ");
-				}
-				sb.append(p);
+			if (sb.length() > 0) {
+				sb.append(" / ");
 			}
+			sb.append(dashIfEmpty(p));
 		}
 		return sb.toString();
+	}
+
+	private static String dashIfEmpty(String value) {
+		return value == null || value.trim().isEmpty() ? "-" : value.trim();
+	}
+
+	private String totalDeducoesReducoes() {
+		String totalXml = n.txt("infNFSe", "DPS", "infDPS", "valores", "vDedRed", "vDR");
+		if (!totalXml.isEmpty()) {
+			return totalXml;
+		}
+		String vCalcDR = n.txt("infNFSe", "valores", "vCalcDR");
+		String vCalcReeRepRes = n.txt("infNFSe", "IBSCBS", "valores", "vCalcReeRepRes");
+		if (vCalcDR.isEmpty() && vCalcReeRepRes.isEmpty()) {
+			return "";
+		}
+		try {
+			return new BigDecimal(firstNonEmpty(vCalcDR, "0"))
+					.add(new BigDecimal(firstNonEmpty(vCalcReeRepRes, "0"))).toPlainString();
+		} catch (NumberFormatException e) {
+			return "";
+		}
 	}
 
 	private String somaExclusoes() {
@@ -951,14 +1142,20 @@ public class DanfseGenerator {
 	}
 
 	private String totaisAproximados() {
-		String fed = firstNonEmpty(n.txt("infNFSe", "DPS", "infDPS", "valores", "trib", "totTrib", "vTotTrib", "vTotTribFed"),
-				n.txt("infNFSe", "DPS", "infDPS", "valores", "trib", "totTrib", "pTotTrib", "pTotTribFed"));
-		String est = firstNonEmpty(n.txt("infNFSe", "DPS", "infDPS", "valores", "trib", "totTrib", "vTotTrib", "vTotTribEst"),
-				n.txt("infNFSe", "DPS", "infDPS", "valores", "trib", "totTrib", "pTotTrib", "pTotTribEst"));
-		String mun = firstNonEmpty(n.txt("infNFSe", "DPS", "infDPS", "valores", "trib", "totTrib", "vTotTrib", "vTotTribMun"),
-				n.txt("infNFSe", "DPS", "infDPS", "valores", "trib", "totTrib", "pTotTrib", "pTotTribMun"));
-		return "Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: " + money(fed)
-				+ "; Estaduais: " + money(est) + "; Municipais: " + money(mun);
+		String fed = totalAproximado("vTotTribFed", "pTotTribFed");
+		String est = totalAproximado("vTotTribEst", "pTotTribEst");
+		String mun = totalAproximado("vTotTribMun", "pTotTribMun");
+		return "Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: Federais: " + fed
+				+ "; Estaduais: " + est + "; Municipais: " + mun;
+	}
+
+	private String totalAproximado(String monetaryTag, String percentTag) {
+		String moneyValue = n.txt("infNFSe", "DPS", "infDPS", "valores", "trib", "totTrib", "vTotTrib", monetaryTag);
+		if (!moneyValue.isEmpty()) {
+			return money(moneyValue);
+		}
+		String percentValue = n.txt("infNFSe", "DPS", "infDPS", "valores", "trib", "totTrib", "pTotTrib", percentTag);
+		return percentValue.isEmpty() ? "-" : pct(percentValue);
 	}
 
 	private static void appendInfo(StringBuilder sb, String prefix, String value) {
@@ -968,10 +1165,6 @@ public class DanfseGenerator {
 			}
 			sb.append(prefix).append(" ").append(value.trim());
 		}
-	}
-
-	private static String slash(String v) {
-		return (v == null || v.isEmpty()) ? "" : " / " + v;
 	}
 
 	private static String firstNonEmpty(String... vals) {
@@ -1026,7 +1219,7 @@ public class DanfseGenerator {
 				return nome;
 			}
 		}
-		return cMun;
+		return "";
 	}
 
 	// ------------------------------------------------------- tabelas de domínio
@@ -1041,6 +1234,9 @@ public class DanfseGenerator {
 	private static final Map<String, String> DESC_REG_AP_SN = new HashMap<>();
 	private static final Map<String, String> DESC_REG_ESP = new HashMap<>();
 	private static final Map<String, String> DESC_TRIB_ISSQN = new HashMap<>();
+	private static final Map<String, String> DESC_TP_IMUNIDADE = new HashMap<>();
+	private static final Map<String, String> DESC_TP_SUSP = new HashMap<>();
+	private static final Map<String, String> DESC_TP_BM = new HashMap<>();
 	private static final Map<String, String> DESC_RET_ISSQN = new HashMap<>();
 	private static final Map<String, String> DESC_RET_PISCOFINS = new HashMap<>();
 
@@ -1087,19 +1283,41 @@ public class DanfseGenerator {
 		DESC_REG_ESP.put("4", "Notário ou Registrador");
 		DESC_REG_ESP.put("5", "Profissional Autônomo");
 		DESC_REG_ESP.put("6", "Sociedade de Profissionais");
+		DESC_REG_ESP.put("9", "Outros");
 
 		DESC_TRIB_ISSQN.put("1", "Operação Tributável");
 		DESC_TRIB_ISSQN.put("2", "Imunidade");
 		DESC_TRIB_ISSQN.put("3", "Exportação de Serviço");
 		DESC_TRIB_ISSQN.put("4", "Não Incidência");
 
+		DESC_TP_IMUNIDADE.put("0", "Imunidade (tipo não informado na nota de origem)");
+		DESC_TP_IMUNIDADE.put("1", "Patrimônio, renda ou serviços, uns dos outros (CF88, Art 150, VI, a)");
+		DESC_TP_IMUNIDADE.put("2", "Templos de qualquer culto (CF88, Art 150, VI, b)");
+		DESC_TP_IMUNIDADE.put("3", "Patrimônio, renda ou serviços dos partidos políticos, inclusive suas fundações, das entidades sindicais dos trabalhadores, das instituições de educação e de assistência social, sem fins lucrativos, atendidos os requisitos da lei (CF88, Art 150, VI, c)");
+		DESC_TP_IMUNIDADE.put("4", "Livros, jornais, periódicos e o papel destinado a sua impressão (CF88, Art 150, VI, d)");
+		DESC_TP_IMUNIDADE.put("5", "Fonogramas e videofonogramas musicais produzidos no Brasil contendo obras musicais ou literomusicais de autores brasileiros e/ou obras em geral interpretadas por artistas brasileiros bem como os suportes materiais ou arquivos digitais que os contenham, salvo na etapa de replicação industrial de mídias ópticas de leitura a laser (CF88, Art 150, VI, e)");
+
+		DESC_TP_SUSP.put("1", "Exigibilidade Suspensa por Decisão Judicial");
+		DESC_TP_SUSP.put("2", "Exigibilidade Suspensa por Processo Administrativo");
+
+		DESC_TP_BM.put("1", "Isenção");
+		DESC_TP_BM.put("2", "Redução da BC em percentual");
+		DESC_TP_BM.put("3", "Redução da BC em valor monetário");
+		DESC_TP_BM.put("4", "Alíquota Diferenciada");
+
 		DESC_RET_ISSQN.put("1", "Não Retido");
 		DESC_RET_ISSQN.put("2", "Retido pelo Tomador");
 		DESC_RET_ISSQN.put("3", "Retido pelo Intermediário");
 
-		DESC_RET_PISCOFINS.put("1", "Retido");
-		DESC_RET_PISCOFINS.put("2", "Não Retido");
+		DESC_RET_PISCOFINS.put("0", "PIS/COFINS/CSLL Não Retidos");
+		DESC_RET_PISCOFINS.put("1", "PIS/COFINS Retidos");
+		DESC_RET_PISCOFINS.put("2", "PIS/COFINS Não Retidos");
 		DESC_RET_PISCOFINS.put("3", "PIS/COFINS/CSLL Retidos");
-		DESC_RET_PISCOFINS.put("4", "PIS/COFINS/CSLL Não Retidos");
+		DESC_RET_PISCOFINS.put("4", "PIS/COFINS Retidos, CSLL Não Retido");
+		DESC_RET_PISCOFINS.put("5", "PIS Retido, COFINS/CSLL Não Retido");
+		DESC_RET_PISCOFINS.put("6", "COFINS Retido, PIS/CSLL Não Retido");
+		DESC_RET_PISCOFINS.put("7", "PIS Não Retido, COFINS/CSLL Retidos");
+		DESC_RET_PISCOFINS.put("8", "PIS/COFINS Não Retidos, CSLL Retido");
+		DESC_RET_PISCOFINS.put("9", "COFINS Não Retido, PIS/CSLL Retidos");
 	}
 }
