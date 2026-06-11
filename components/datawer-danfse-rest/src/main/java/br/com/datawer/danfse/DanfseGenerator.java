@@ -89,6 +89,7 @@ public class DanfseGenerator {
 	 */
 	public byte[] generate(NfseXml nfse, String situacao) throws Exception {
 		this.n = nfse;
+		IbgeMunicipios.atualizar();
 		try (PDDocument document = new PDDocument()) {
 			this.doc = document;
 			this.fontContent = loadFont("/danfse/fonts/micross.ttf", PDType1Font.HELVETICA);
@@ -230,13 +231,20 @@ public class DanfseGenerator {
 		field("CNPJ / CPF / NIF", fmtDoc(n.txt(cat(p, "CNPJ")), n.txt(cat(p, "CPF")), n.txt(cat(p, "NIF"))),
 				COLS[1], y, 5.10f, 0.63f);
 		field("Indicador Municipal (Inscrição)", n.txt(cat(p, "IM")), COLS[2], y, 5.11f, 0.63f);
-		field("Telefone", n.txt(cat(p, "fone")), COLS[3], y, 5.08f, 0.63f);
+		field("Telefone", fmtFone(n.txt(cat(p, "fone"))), COLS[3], y, 5.08f, 0.63f);
 		float y2 = y + 0.63f;
 		// prestador: leiaute só traz CNPJ; demais dados cadastrais vêm em infNFSe/emit
 		field("Nome / Nome Empresarial", n.txt("infNFSe", "emit", "xNome"), COLS[0], y2, 10.21f, 0.64f);
-		field("Município / Sigla UF", munUf(n.txt("infNFSe", "xLocEmi"), n.txt("infNFSe", "emit", "enderNac", "UF")),
+		// município/UF do emitente: nome em xLocEmi e UF em emit/enderNac; quando
+		// faltarem, resolve pelo código IBGE (cMun) conforme tabela 2.4.5
+		String cMunEmit = firstNonEmpty(n.txt("infNFSe", "emit", "enderNac", "cMun"),
+				n.txt(cat(p, "end", "endNac", "cMun")));
+		field("Município / Sigla UF",
+				munUf(firstNonEmpty(n.txt("infNFSe", "xLocEmi"), municipioNome(cMunEmit)),
+						firstNonEmpty(n.txt("infNFSe", "emit", "enderNac", "UF"), ufFromIbge(cMunEmit))),
 				COLS[2], y2, 5.11f, 0.64f);
-		field("Código IBGE / CEP", ibgeCep(n.txt("infNFSe", "emit", "enderNac", "cMun"), n.txt("infNFSe", "emit", "enderNac", "CEP")),
+		field("Código IBGE / CEP", ibgeCep(cMunEmit,
+				firstNonEmpty(n.txt("infNFSe", "emit", "enderNac", "CEP"), n.txt(cat(p, "end", "endNac", "CEP")))),
 				COLS[3], y2, 5.08f, 0.64f);
 		float y3 = y2 + 0.64f;
 		field("Endereço", endereco(n, "infNFSe", "emit", "enderNac"), COLS[0], y3, 10.21f, 0.66f);
@@ -263,7 +271,7 @@ public class DanfseGenerator {
 		field("CNPJ / CPF / NIF", fmtDoc(n.txt(cat(t, "CNPJ")), n.txt(cat(t, "CPF")), n.txt(cat(t, "NIF"))),
 				COLS[1], y, 5.10f, 0.63f);
 		field("Indicador Municipal (Inscrição)", n.txt(cat(t, "IM")), COLS[2], y, 5.11f, 0.63f);
-		field("Telefone", n.txt(cat(t, "fone")), COLS[3], y, 5.08f, 0.63f);
+		field("Telefone", fmtFone(n.txt(cat(t, "fone"))), COLS[3], y, 5.08f, 0.63f);
 		float y2 = y + 0.63f;
 		field("Nome / Nome Empresarial", n.txt(cat(t, "xNome")), COLS[0], y2, 10.21f, 0.64f);
 		String cMun = n.txt(cat(t, "end", "endNac", "cMun"));
@@ -288,7 +296,7 @@ public class DanfseGenerator {
 		line(LEFT, y, RIGHT, y);
 		field("CNPJ / CPF / NIF", fmtDoc(n.txt(cat(d, "CNPJ")), n.txt(cat(d, "CPF")), n.txt(cat(d, "NIF"))),
 				COLS[1], y, 5.10f, 0.63f);
-		field("Telefone", n.txt(cat(d, "fone")), COLS[3], y, 5.08f, 0.63f);
+		field("Telefone", fmtFone(n.txt(cat(d, "fone"))), COLS[3], y, 5.08f, 0.63f);
 		float y2 = y + 0.63f;
 		field("Nome / Nome Empresarial", n.txt(cat(d, "xNome")), COLS[0], y2, 10.21f, 0.64f);
 		String cMun = n.txt(cat(d, "end", "endNac", "cMun"));
@@ -311,7 +319,7 @@ public class DanfseGenerator {
 		field("CNPJ / CPF / NIF", fmtDoc(n.txt(cat(i, "CNPJ")), n.txt(cat(i, "CPF")), n.txt(cat(i, "NIF"))),
 				COLS[1], y, 5.10f, 0.63f);
 		field("Indicador Municipal (Inscrição)", n.txt(cat(i, "IM")), COLS[2], y, 5.11f, 0.63f);
-		field("Telefone", n.txt(cat(i, "fone")), COLS[3], y, 5.08f, 0.63f);
+		field("Telefone", fmtFone(n.txt(cat(i, "fone"))), COLS[3], y, 5.08f, 0.63f);
 		float y2 = y + 0.63f;
 		field("Nome / Nome Empresarial", n.txt(cat(i, "xNome")), COLS[0], y2, 10.21f, 0.64f);
 		String cMun = n.txt(cat(i, "end", "endNac", "cMun"));
@@ -336,8 +344,7 @@ public class DanfseGenerator {
 				fmtCTribNac(n.txt(cat(s, "cServ", "cTribNac"))) + slash(n.txt(cat(s, "cServ", "cTribMun"))),
 				COLS[1], y, 5.10f, 0.63f);
 		field("Código da NBS", fmtNbs(n.txt(cat(s, "cServ", "cNBS"))), COLS[2], y, 5.11f, 0.63f);
-		field("Local da Prestação / Sigla UF / País",
-				n.txt("infNFSe", "xLocPrestacao") + " / " + paisPrestacao(), COLS[3], y, 5.08f, 0.63f);
+		field("Local da Prestação / Sigla UF / País", localPrestacao(), COLS[3], y, 5.08f, 0.63f);
 
 		// descrição do código de tributação (sem label - tabela 2.4.5)
 		float y2 = y + 0.63f;
@@ -381,8 +388,11 @@ public class DanfseGenerator {
 		line(LEFT, y, RIGHT, y);
 		field("Tipo de Tributação do ISSQN", DESC_TRIB_ISSQN.getOrDefault(n.txt(cat(tm, "tribISSQN")), "-"),
 				COLS[1], y, 5.10f, 0.63f);
+		String cLocIncid = n.txt("infNFSe", "cLocIncid");
 		field("Município / Sigla UF / País da Incidência do ISSQN",
-				n.txt("infNFSe", "xLocIncid") + " / " + ufFromIbge(n.txt("infNFSe", "cLocIncid")) + " / BR",
+				joinSlash(firstNonEmpty(n.txt("infNFSe", "xLocIncid"), municipioNome(cLocIncid)),
+						ufFromIbge(cLocIncid),
+						firstNonEmpty(n.txt(cat(tm, "cPaisResult")), cLocIncid.isEmpty() ? "" : "BR")),
 				COLS[2], y, 10.19f, 0.63f);
 		float r = y + 0.63f;
 		if (row2) {
@@ -442,8 +452,8 @@ public class DanfseGenerator {
 				n.txt(cat(dpsIb, "valores", "trib", "gIBSCBS", "CST")) + slash(n.txt(cat(dpsIb, "valores", "trib", "gIBSCBS", "cClassTrib"))),
 				COLS[1], y, 5.10f, 0.63f);
 		field("Indicador de Operação / Código IBGE Incidência / Município Incidência / Sigla UF",
-				n.txt(cat(dpsIb, "cIndOp")) + " / " + n.txt(cat(ib, "cLocalidadeIncid")) + " / "
-						+ n.txt(cat(ib, "xLocalidadeIncid")) + " / " + ufFromIbge(n.txt(cat(ib, "cLocalidadeIncid"))),
+				joinSlash(n.txt(cat(dpsIb, "cIndOp")), n.txt(cat(ib, "cLocalidadeIncid")),
+						n.txt(cat(ib, "xLocalidadeIncid")), ufFromIbge(n.txt(cat(ib, "cLocalidadeIncid")))),
 				COLS[2], y, 10.19f, 0.63f);
 
 		float r = y + 0.63f;
@@ -815,6 +825,21 @@ public class DanfseGenerator {
 		return firstNonEmpty(cnpj, cpf, nif);
 	}
 
+	/** Telefone com máscara (nn) nnnn-nnnn ou (nn) nnnnn-nnnn quando possível. */
+	private static String fmtFone(String fone) {
+		if (fone == null) {
+			return "";
+		}
+		String d = fone.trim();
+		if (d.matches("\\d{10}")) {
+			return "(" + d.substring(0, 2) + ") " + d.substring(2, 6) + "-" + d.substring(6);
+		}
+		if (d.matches("\\d{11}")) {
+			return "(" + d.substring(0, 2) + ") " + d.substring(2, 7) + "-" + d.substring(7);
+		}
+		return d;
+	}
+
 	private static String fmtCTribNac(String c) {
 		if (c != null && c.length() == 6) {
 			return c.substring(0, 2) + "." + c.substring(2, 4) + "." + c.substring(4);
@@ -861,9 +886,33 @@ public class DanfseGenerator {
 		return sb.toString();
 	}
 
-	private String paisPrestacao() {
-		String p = n.txt("infNFSe", "DPS", "infDPS", "serv", "locPrest", "cPaisPrestacao");
-		return p.isEmpty() ? "BR" : p;
+	/**
+	 * "Local da Prestação / Sigla UF / País" (tabela 2.4.5): concatena o nome
+	 * do município, a respectiva UF da Tabela do IBGE e o código ISO do país.
+	 * O XML traz só o nome em xLocPrestacao; a UF é resolvida pelos 2 primeiros
+	 * dígitos de locPrest/cLocPrestacao. Prestação no exterior (cLocPrestacao
+	 * ausente) sai sem UF, com o país de cPaisPrestacao.
+	 */
+	private String localPrestacao() {
+		String[] loc = {"infNFSe", "DPS", "infDPS", "serv", "locPrest"};
+		String cLoc = n.txt(cat(loc, "cLocPrestacao"));
+		String mun = firstNonEmpty(n.txt("infNFSe", "xLocPrestacao"), municipioNome(cLoc));
+		String pais = firstNonEmpty(n.txt(cat(loc, "cPaisPrestacao")), "BR");
+		return joinSlash(mun, ufFromIbge(cLoc), pais);
+	}
+
+	/** Concatena as partes não vazias com " / " (padrão "Município / UF / País"). */
+	private static String joinSlash(String... parts) {
+		StringBuilder sb = new StringBuilder();
+		for (String p : parts) {
+			if (p != null && !p.isEmpty()) {
+				if (sb.length() > 0) {
+					sb.append(" / ");
+				}
+				sb.append(p);
+			}
+		}
+		return sb.toString();
 	}
 
 	private String somaExclusoes() {
@@ -889,10 +938,13 @@ public class DanfseGenerator {
 	}
 
 	private String somaIbsCbs() {
+		String ibs = n.txt("infNFSe", "IBSCBS", "totCIBS", "gIBS", "vIBSTot");
+		String cbs = n.txt("infNFSe", "IBSCBS", "totCIBS", "gCBS", "vCBS");
+		if (ibs.isEmpty() && cbs.isEmpty()) {
+			return ""; // nota 12: sem informação no XML, imprime "-"
+		}
 		try {
-			BigDecimal ibs = new BigDecimal(firstNonEmpty(n.txt("infNFSe", "IBSCBS", "totCIBS", "gIBS", "vIBSTot"), "0"));
-			BigDecimal cbs = new BigDecimal(firstNonEmpty(n.txt("infNFSe", "IBSCBS", "totCIBS", "gCBS", "vCBS"), "0"));
-			return ibs.add(cbs).toPlainString();
+			return new BigDecimal(firstNonEmpty(ibs, "0")).add(new BigDecimal(firstNonEmpty(cbs, "0"))).toPlainString();
 		} catch (NumberFormatException e) {
 			return "";
 		}
@@ -948,8 +1000,8 @@ public class DanfseGenerator {
 
 	/**
 	 * Nome do município a partir do código IBGE (tabela 2.4.5 manda usar a
-	 * descrição da tabela do IBGE). Consulta o de-para do dataset sincronizado
-	 * ds_dw_api_ibge_municipios via {@link IbgeMunicipios}; sem ele, tenta os
+	 * descrição da tabela do IBGE). Consulta o de-para de {@link IbgeMunicipios}
+	 * (API do IBGE com fallback no snapshot embutido); sem ele, tenta os
 	 * nomes que o próprio XML traz e, em último caso, imprime o código.
 	 */
 	private String municipioNome(String cMun) {
