@@ -1,0 +1,15 @@
+.github
+.vscode
+.resources
+.classpath
+.metadata/
+.recommenders/
+.settings/
+.claude
+
+.project
+
+.DS_Store
+**/.DS_Store
+
+target
