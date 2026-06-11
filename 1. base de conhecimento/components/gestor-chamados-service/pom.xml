@@ -1,0 +1,72 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>br.com.userflow.fluig</groupId>
+		<artifactId>gestor-chamados-app</artifactId>
+		<version>1.0.0</version>
+	</parent>
+	<artifactId>gestor-chamados-service</artifactId>
+	<packaging>ejb</packaging>
+	<name>Gestor de Chamados - Service</name>
+	<description>Gestor de Chamados - Service</description>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>br.com.userflow.fluig</groupId>
+			<artifactId>gestor-chamados-entity</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- fluig dependecies -->
+		<dependency>
+			<groupId>com.fluig</groupId>
+			<artifactId>foundation-common</artifactId>
+			<version>${fluig.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fluig</groupId>
+			<artifactId>fluig-sdk-api</artifactId>
+			<version>${fluig.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fluig</groupId>
+			<artifactId>fluig-sdk-common</artifactId>
+			<version>${fluig.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fluig</groupId>
+			<artifactId>fluig-sdk-keyring</artifactId>
+			<version>${fluig.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fluig</groupId>
+			<artifactId>fluig-api-tools</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<!-- /fluig dependecies -->
+
+		<!-- others -->
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>oauth.signpost</groupId>
+			<artifactId>signpost-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+		</dependency>
+		<!-- /others -->
+
+	</dependencies>
+</project>

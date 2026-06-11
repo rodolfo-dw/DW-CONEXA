@@ -1,0 +1,39 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>br.com.userflow.fluig</groupId>
+		<artifactId>gestor-chamados-app</artifactId>
+		<version>1.0.0</version>
+	</parent>
+	<artifactId>gestor-chamados-config</artifactId>
+	<packaging>war</packaging>
+	<name>Gestor de Chamados - Config</name>
+	<description>Módulo core do aplicativo Gestor de Chamados</description>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<!-- Para o Fluig 1.6.5, deve ser alterado para versão 1.8 -->
+					<source>11</source>
+					<target>11</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.github.blutorange</groupId>
+				<artifactId>closure-compiler-maven-plugin</artifactId>
+				<configuration>
+					<skip>false</skip>
+					<sourceDir>main/resources</sourceDir>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
