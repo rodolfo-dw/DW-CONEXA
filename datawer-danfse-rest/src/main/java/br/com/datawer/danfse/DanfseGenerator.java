@@ -20,8 +20,10 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.graphics.blend.BlendMode;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.apache.pdfbox.util.Matrix;
 
 import com.google.zxing.BarcodeFormat;
@@ -511,7 +513,7 @@ public class DanfseGenerator {
 		String[] tf = {"infNFSe", "DPS", "infDPS", "valores", "trib", "tribFed"};
 		// nota 6: linha PIS/COFINS impressa para competência até o fim de 2026
 		String compet = n.txt("infNFSe", "DPS", "infDPS", "dCompet");
-		boolean pisRow = n.has(cat(tf, "piscofins")) && (compet.isEmpty() || compet.compareTo("2027") < 0);
+		boolean pisRow = compet.isEmpty() || compet.compareTo("2027") < 0;
 
 		float h = 0.63f + (pisRow ? 0.65f : 0);
 		blockTitle("TRIBUTAÇÃO FEDERAL (EXCETO CBS)", COLS[0], y, 5.11f, 0.63f);
@@ -675,6 +677,11 @@ public class DanfseGenerator {
 
 	private void watermark(String txt) throws Exception {
 		cs.saveGraphicsState();
+		// MULTIPLY: o cinza só escurece o fundo, deixando o conteúdo da nota
+		// legível por cima - efeito de marca d'água atrás do documento
+		PDExtendedGraphicsState gs = new PDExtendedGraphicsState();
+		gs.setBlendMode(BlendMode.MULTIPLY);
+		cs.setGraphicsStateParameters(gs);
 		cs.setNonStrokingColor(166, 166, 166); // K35
 		cs.beginText();
 		cs.setFont(fontArial, 60);
