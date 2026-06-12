@@ -8,6 +8,14 @@
         { nome: "33045572227092748000118000000005369526069695279520.xml", xml: "<?xml version=\"1.0\" encoding=\"utf-8\"?><NFSe versao=\"1.01\" xmlns=\"http://www.sped.fazenda.gov.br/nfse\"><infNFSe Id=\"NFS33045572227092748000118000000005369526069695279520\"><xLocEmi>Rio de Janeiro</xLocEmi><xLocPrestacao>Rio de Janeiro</xLocPrestacao><nNFSe>53695</nNFSe><cLocIncid>3304557</cLocIncid><xLocIncid>Rio de Janeiro</xLocIncid><xTribNac>Medicina.</xTribNac><xTribMun>Medicina.</xTribMun><xNBS>Serviços médicos especializados</xNBS><verAplic>SefinNacional_1.6.0</verAplic><ambGer>2</ambGer><tpEmis>1</tpEmis><procEmi>1</procEmi><cStat>100</cStat><dhProc>2026-06-09T08:56:09-03:00</dhProc><nDFSe>89273169</nDFSe><emit><CNPJ>27092748000118</CNPJ><xNome>CONEXA SAUDE SERVICOS MEDICOS S.A.</xNome><enderNac><xLgr>PRAIA BOTAFOGO</xLgr><nro>00501</nro><xBairro>BOTAFOGO</xBairro><cMun>3304557</cMun><UF>RJ</UF><CEP>22250911</CEP></enderNac><fone>2125076754</fone><email>DCUPELLO@INTEGRATED.COM.BR</email></emit><valores><vBC>21908.10</vBC><pAliqAplic>5.00</pAliqAplic><vISSQN>1095.40</vISSQN><vTotalRet>1347.34</vTotalRet><vLiq>20560.76</vLiq></valores><IBSCBS><cLocalidadeIncid>2933307</cLocalidadeIncid><xLocalidadeIncid>Vitória da Conquista</xLocalidadeIncid><valores><vBC>20013.06</vBC><vCalcReeRepRes>0.00</vCalcReeRepRes><uf><pIBSUF>0.10</pIBSUF><pAliqEfetUF>0.10</pAliqEfetUF></uf><mun><pIBSMun>0.00</pIBSMun><pAliqEfetMun>0.00</pAliqEfetMun></mun><fed><pCBS>0.90</pCBS><pAliqEfetCBS>0.90</pAliqEfetCBS></fed></valores><totCIBS><vTotNF>20560.76</vTotNF><gIBS><vIBSTot>20.01</vIBSTot><gIBSUFTot><vIBSUF>20.01</vIBSUF></gIBSUFTot><gIBSMunTot><vIBSMun>0.00</vIBSMun></gIBSMunTot></gIBS><gCBS><vCBS>180.12</vCBS></gCBS></totCIBS></IBSCBS><DPS xmlns=\"http://www.sped.fazenda.gov.br/nfse\" versao=\"1.01\"><infDPS xmlns=\"http://www.sped.fazenda.gov.br/nfse\" Id=\"DPS330455722709274800011800002000000000000203\"><tpAmb>1</tpAmb><dhEmi>2026-06-09T08:53:53-03:00</dhEmi><verAplic>TOTVS-TSS-3.00</verAplic><serie>2</serie><nDPS>203</nDPS><dCompet>2026-06-09</dCompet><tpEmit>1</tpEmit><cLocEmi>3304557</cLocEmi><prest><CNPJ>27092748000118</CNPJ><fone>2125076754</fone><regTrib><opSimpNac>1</opSimpNac><regEspTrib>0</regEspTrib></regTrib></prest><toma><CNPJ>16415598000110</CNPJ><xNome>Unimed Sudoeste da Bahia</xNome><end><endNac><cMun>2933307</cMun><CEP>45020760</CEP></endNac><xLgr>AV OTAVIO SANTOS</xLgr><nro>147</nro><xBairro>CENTRO</xBairro></end><fone>774247777</fone><email>mateus.junior@conexasaude.com.br</email></toma><serv><locPrest><cLocPrestacao>3304557</cLocPrestacao></locPrest><cServ><cTribNac>040101</cTribNac><cTribMun>001</cTribMun><xDescServ>Servicos prestados ref ao demonstrativo 35</xDescServ><cNBS>123012200</cNBS></cServ><infoCompl><xInfComp>Servicos prestados ref ao demonstrativo 35- PIS RETIDO: 142.40, COFINS RETIDO: 657.24, CSLL RETIDO: 219.08 CONEXA RIO DE JANEIRO - MATRIZ CNPJ: 27.092.748/0001-18 Banco Itau AG: 2937 CC: 22901-7 VENCIMENTO 08/07/2026 Valor liquido: R$      20.560,76</xInfComp></infoCompl></serv><valores><vServPrest><vServ>21908.10</vServ></vServPrest><trib><tribMun><tribISSQN>1</tribISSQN><tpRetISSQN>1</tpRetISSQN></tribMun><tribFed><piscofins><CST>01</CST><vBCPisCofins>21908.10</vBCPisCofins><pAliqPis>0.65</pAliqPis><pAliqCofins>3.00</pAliqCofins><vPis>142.40</vPis><vCofins>657.24</vCofins><tpRetPisCofins>3</tpRetPisCofins></piscofins><vRetIRRF>328.62</vRetIRRF><vRetCSLL>1018.72</vRetCSLL></tribFed><totTrib><vTotTrib><vTotTribFed>1347.34</vTotTribFed><vTotTribEst>0.00</vTotTribEst><vTotTribMun>1095.41</vTotTribMun></vTotTrib></totTrib></trib></valores><IBSCBS><finNFSe>0</finNFSe><indFinal>1</indFinal><cIndOp>100301</cIndOp><indDest>0</indDest><valores><trib><gIBSCBS><CST>000</CST><cClassTrib>000001</cClassTrib></gIBSCBS></trib></valores></IBSCBS></infDPS><Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignedInfo xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><CanonicalizationMethod Algorithm=\"http://www.w3.org/TR/2001/REC-xml-c14n-20010315\" /><SignatureMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\" /><Reference URI=\"#DPS330455722709274800011800002000000000000203\"><Transforms><Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\" /><Transform Algorithm=\"http://www.w3.org/TR/2001/REC-xml-c14n-20010315\" /></Transforms><DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha1\" /><DigestValue>tV2c2VFbH0HA9RIskPCYA1xzUrc=</DigestValue></Reference></SignedInfo><SignatureValue>lV6/pbfFkJSdPH3t7Lxr30eIABSHxeuqLcDgCAtnA/AlZSHRihlq648O4DdiEG51PIZtzRBTXs2KhSl60ykdK0pWIhU4vYzaDStMVCojfhcTUGAMvWGI8Mhl/pFwTws78BsXVgpM926OEyC/6CZc6xno7gw4ZIumIkFu+zTCb3gwGWlh5oMADIuOET2orwkiZp3wgcDIjP+ZFNq7dkgJlvwZhxici8I830BrBM0FZAbGWjeADTMFtQlkg6Jufe+6TrX1OHaNyCIdRdzreZY4ccyDdVVmMu59QZekHdveBsA53MFFRVGoiPSrdOmiO/zp7hRTGPg9F47I4E9Wr2kSsA==</SignatureValue><KeyInfo><X509Data><X509Certificate>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</X509Certificate></X509Data></KeyInfo></Signature></DPS></infNFSe><Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignedInfo><CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#WithComments\" /><SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\" /><Reference URI=\"#NFS33045572227092748000118000000005369526069695279520\"><Transforms><Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\" /><Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#WithComments\" /></Transforms><DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\" /><DigestValue>atbCVCT5KZ7ZIUz9/22jvWNn2GMnXX1kQwNY+48Mgp4=</DigestValue></Reference></SignedInfo><SignatureValue>HsEi69GDhp8l1DH8/uY4861sWym+sl6F0NR99N3I65X35SPae2+24hVdwsWKPqQ/jZ9KViMdCw9qFKW8HyG7sLUSRGEqbtYUMofx92oMn6o3F+/idXL7D7uhQW9s52K8NygwPriGOLAvRN1PJyI3GjLLKv3oUgQHEULuHt8Q7V/noXFd3yobc+T24RdmhTOSyY0qn7EDeOQnw1y3tCni/QZwf0p+S3mfL79u3723G3SEL6ESSkkweoTNQpyMDBuAVReVLeo3qIAScDRTECrG3c0xs7UKBEdP3vC0+iFYErNdRh6FxsgPwMFAZ/xSjpJcg2r/CKO4gaFho1ta5F9kaw==</SignatureValue><KeyInfo><X509Data><X509Certificate>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</X509Certificate></X509Data></KeyInfo></Signature></NFSe>" }
     ];
 
+    var endpoint = '/datawer/api/v1/danfse/base64';
+    var baixarPdfs = true;
+    var cenariosPdf = [
+        { nome: 'NORMAL', query: '?debug=true' },
+        { nome: 'CANCELADA', query: '?situacao=CANCELADA&debug=true' },
+        { nome: 'SUBSTITUIDA', query: '?situacao=SUBSTITUIDA&debug=true' }
+    ];
+
     function baixarPdf(base64, fileName) {
         var byteChars = atob(base64);
         var bytes = new Uint8Array(byteChars.length);
@@ -26,45 +34,188 @@
         setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
     }
 
-    var resultados = [];
+    async function chamarApi(body, query, contentType) {
+        var response = await fetch(endpoint + (query || ''), {
+            method: 'POST',
+            headers: {
+                'Content-Type': contentType || 'application/xml',
+                'Accept': 'application/json'
+            },
+            body: body
+        });
+        var texto = await response.text();
+        var result;
+
+        try {
+            result = JSON.parse(texto);
+        } catch (erro) {
+            throw new Error('Resposta HTTP ' + response.status + ' nao e JSON: ' + texto.substring(0, 200));
+        }
+
+        return { response: response, result: result };
+    }
+
+    function validarPdf(chamada, situacaoEsperada) {
+        var response = chamada.response;
+        var result = chamada.result;
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || ('HTTP ' + response.status));
+        }
+        if (response.status !== 200) {
+            throw new Error('HTTP esperado 200, recebido ' + response.status);
+        }
+        if (result.situacao !== situacaoEsperada) {
+            throw new Error('Situacao esperada ' + situacaoEsperada + ', recebida ' + result.situacao);
+        }
+        if (result.contentType !== 'application/pdf') {
+            throw new Error('Content-Type do arquivo inesperado: ' + result.contentType);
+        }
+        if (!result.pdfBase64 || result.pdfBase64.indexOf('JVBERi0') !== 0) {
+            throw new Error('pdfBase64 ausente ou sem assinatura de PDF');
+        }
+        if (!Array.isArray(result.audit) || result.audit.length === 0) {
+            throw new Error('debug=true nao retornou auditoria');
+        }
+
+        return result;
+    }
+
+    function nomePdfPorCenario(fileName, situacao) {
+        var nome = fileName || 'DANFSe.pdf';
+        return nome.replace(/\.pdf$/i, '') + '-' + situacao + '.pdf';
+    }
+
+    var resultadosPdf = [];
+    var totalPdf = notas.length * cenariosPdf.length;
+    var atualPdf = 0;
 
     for (var indice = 0; indice < notas.length; indice++) {
         var nota = notas[indice];
-        console.log('[' + (indice + 1) + '/' + notas.length + '] Enviando ' + nota.nome + '...');
 
-        try {
-            var response = await fetch('/datawer/api/v1/danfse/base64', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/xml' },
-                body: nota.xml
-            });
-            var result = await response.json();
+        for (var cenarioIndice = 0; cenarioIndice < cenariosPdf.length; cenarioIndice++) {
+            var cenario = cenariosPdf[cenarioIndice];
+            atualPdf++;
+            console.log('[' + atualPdf + '/' + totalPdf + '] ' + nota.nome + ' - ' + cenario.nome);
 
-            if (!response.ok || !result.success) {
-                throw new Error(result.message || ('HTTP ' + response.status));
+            try {
+                var chamada = await chamarApi(nota.xml, cenario.query, 'application/xml');
+                var result = validarPdf(chamada, cenario.nome);
+                var nomePdf = nomePdfPorCenario(result.fileName, cenario.nome);
+
+                resultadosPdf.push({
+                    arquivo: nota.nome,
+                    situacao: cenario.nome,
+                    status: 'OK',
+                    http: chamada.response.status,
+                    numeroNfse: result.numeroNfse,
+                    auditoria: result.audit.length,
+                    pdf: nomePdf
+                });
+
+                if (baixarPdfs) {
+                    baixarPdf(result.pdfBase64, nomePdf);
+                }
+            } catch (erro) {
+                resultadosPdf.push({
+                    arquivo: nota.nome,
+                    situacao: cenario.nome,
+                    status: 'ERRO',
+                    mensagem: erro.message
+                });
+                console.error('ERRO em ' + nota.nome + ' [' + cenario.nome + ']:', erro);
             }
-
-            resultados.push({
-                arquivo: nota.nome,
-                status: 'OK',
-                numeroNfse: result.numeroNfse,
-                chaveAcesso: result.chaveAcesso,
-                emitente: result.emitente,
-                pdf: result.fileName
-            });
-
-            console.log('OK:', nota.nome, result.numeroNfse, result.fileName);
-            baixarPdf(result.pdfBase64, result.fileName);
-        } catch (erro) {
-            resultados.push({
-                arquivo: nota.nome,
-                status: 'ERRO',
-                mensagem: erro.message
-            });
-            console.error('ERRO em ' + nota.nome + ':', erro);
         }
     }
 
-    console.table(resultados);
-    console.log('Processamento concluido: ' + resultados.length + ' XML(s).');
+    var xmlContrato = notas[0].xml;
+    var testesContrato = [
+        {
+            nome: 'Content-Type text/xml e debug=false',
+            body: xmlContrato,
+            contentType: 'text/xml',
+            statusEsperado: 200,
+            sucessoEsperado: true,
+            semAuditoria: true
+        },
+        {
+            nome: 'Content-Type text/plain',
+            body: xmlContrato,
+            contentType: 'text/plain',
+            statusEsperado: 200,
+            sucessoEsperado: true,
+            semAuditoria: true
+        },
+        {
+            nome: 'Corpo vazio',
+            body: '',
+            contentType: 'application/xml',
+            statusEsperado: 400,
+            sucessoEsperado: false
+        },
+        {
+            nome: 'Raiz diferente de NFSe',
+            body: '<?xml version="1.0" encoding="utf-8"?><DPS/>',
+            contentType: 'application/xml',
+            statusEsperado: 400,
+            sucessoEsperado: false
+        },
+        {
+            nome: 'XML malformado',
+            body: '<NFSe>',
+            contentType: 'application/xml',
+            statusEsperado: 500,
+            sucessoEsperado: false
+        }
+    ];
+    var resultadosContrato = [];
+
+    for (var testeIndice = 0; testeIndice < testesContrato.length; testeIndice++) {
+        var teste = testesContrato[testeIndice];
+        console.log('[Contrato ' + (testeIndice + 1) + '/' + testesContrato.length + '] ' + teste.nome);
+
+        try {
+            var chamadaContrato = await chamarApi(teste.body, '', teste.contentType);
+            var retornoContrato = chamadaContrato.result;
+            var aprovado = chamadaContrato.response.status === teste.statusEsperado
+                && retornoContrato.success === teste.sucessoEsperado;
+
+            if (teste.semAuditoria && Object.prototype.hasOwnProperty.call(retornoContrato, 'audit')) {
+                aprovado = false;
+            }
+            if (teste.sucessoEsperado && (!retornoContrato.pdfBase64
+                    || retornoContrato.pdfBase64.indexOf('JVBERi0') !== 0)) {
+                aprovado = false;
+            }
+            if (!teste.sucessoEsperado && !retornoContrato.message) {
+                aprovado = false;
+            }
+
+            resultadosContrato.push({
+                cenario: teste.nome,
+                status: aprovado ? 'OK' : 'FALHOU',
+                httpEsperado: teste.statusEsperado,
+                httpRecebido: chamadaContrato.response.status,
+                success: retornoContrato.success,
+                mensagem: retornoContrato.message || ''
+            });
+        } catch (erro) {
+            resultadosContrato.push({
+                cenario: teste.nome,
+                status: 'ERRO',
+                mensagem: erro.message
+            });
+            console.error('ERRO no teste de contrato [' + teste.nome + ']:', erro);
+        }
+    }
+
+    console.log('RESULTADOS DOS PDFs');
+    console.table(resultadosPdf);
+    console.log('RESULTADOS DO CONTRATO HTTP');
+    console.table(resultadosContrato);
+
+    var falhasPdf = resultadosPdf.filter(function (item) { return item.status !== 'OK'; }).length;
+    var falhasContrato = resultadosContrato.filter(function (item) { return item.status !== 'OK'; }).length;
+    console.log('Concluido: ' + resultadosPdf.length + ' PDFs e ' + resultadosContrato.length
+        + ' testes de contrato. Falhas: ' + (falhasPdf + falhasContrato) + '.');
 })();
