@@ -44,6 +44,7 @@ class DanfseGeneratorTest {
 
 	@Test
 	void deveResolverCamposEValoresDoXmlConformeNt008() {
+		// cPaisPrestacao ausente com cLocPrestacao nacional: infere BR (código IBGE implica Brasil)
 		assertField("SERVIÇO PRESTADO", "Local da Prestação / Sigla UF / País", "Rio de Janeiro / RJ / BR");
 		assertField("PRESTADOR / FORNECEDOR", "Município / Sigla UF", "Rio de Janeiro / RJ");
 		assertField("TOMADOR / ADQUIRENTE", "Município / Sigla UF", "Medianeira / PR");

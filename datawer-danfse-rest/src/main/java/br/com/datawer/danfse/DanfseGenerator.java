@@ -1279,9 +1279,9 @@ public class DanfseGenerator {
 		DESC_OP_SIMP.put("2", "Optante - Microempreendedor Individual (MEI)");
 		DESC_OP_SIMP.put("3", "Optante - Microempresa ou Empresa de Pequeno Porte (ME/EPP)");
 
-		DESC_REG_AP_SN.put("1", "Regime de apuração dos tributos federais e municipal pelo SN");
-		DESC_REG_AP_SN.put("2", "Regime de apuração dos tributos federais pelo SN e ISSQN fora do SN");
-		DESC_REG_AP_SN.put("3", "Regime de apuração dos tributos federais e municipal fora do SN");
+		DESC_REG_AP_SN.put("1", "Regime de apuração dos tributos federais e municipal pelo Simples Nacional");
+		DESC_REG_AP_SN.put("2", "Regime de apuração dos tributos federais pelo Simples Nacional e ISSQN fora do Simples Nacional");
+		DESC_REG_AP_SN.put("3", "Regime de apuração dos tributos federais e municipal fora do Simples Nacional");
 
 		DESC_REG_ESP.put("0", "Nenhum");
 		DESC_REG_ESP.put("1", "Ato Cooperado");
